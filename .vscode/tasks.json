@@ -1,0 +1,27 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "bun",
+			"script": "start",
+			"problemMatcher": [],
+			"label": "bun run src/index.ts",
+			"detail": "bun run src/index.ts",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"type": "bun",
+			"script": "start",
+			"problemMatcher": [],
+			"label": "bun run srcindex.ts",
+			"detail": "bun run src/index.ts",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		}
+	]
+}

@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        
+        {
+            "type": "bun",
+            "internalConsoleOptions": "neverOpen",
+            "request": "launch",
+            "name": "Run File",
+            "program": "${file}",
+            "cwd": "${workspaceFolder}",
+            "noDebug": true,
+            "watchMode": false
+        }
+    ]
+}
