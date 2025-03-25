@@ -1,6 +1,7 @@
 # Raindrop MCP Server
 
 A Model Context Protocol server implementation for Raindrop.io bookmarks, built with Bun and TypeScript.
+Based on the [Raindrop.io API Documentation](https://developer.raindrop.io/)
 
 ## Features
 
