@@ -140,12 +140,18 @@ class RaindropService {
     await this.api.delete(`/highlight/${id}`);
   }
 
-  async getAllHighlights(): Promise<{ _id: number; text: string; note?: string; color?: string; created: string; lastUpdate: string }[]> {
+  async getAllHighlights(): Promise<{ text: string; note?: string; color?: string; created: string; lastUpdate: string }[]> {
     const { data } = await this.api.get('/highlights');
     if (!data || !data.items) {
       throw new Error('Invalid response structure from Raindrop.io API');
     }
-    return data.items;
+    return data.items.map((highlight: any) => ({
+      text: highlight.text,
+      note: highlight.note,
+      color: highlight.color,
+      created: highlight.created,
+      lastUpdate: highlight.lastUpdate
+    }));
   }
 
   // Advanced search with filters

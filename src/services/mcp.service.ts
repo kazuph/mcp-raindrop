@@ -175,7 +175,7 @@ export class RaindropMCPService {
       async () => {
         const highlights = await raindropService.getAllHighlights();
         return {
-          content: highlights.items.map(highlight => ({
+          content: highlights.map(highlight => ({
             type: "text",
             text: highlight.text,
             color: highlight.color,
