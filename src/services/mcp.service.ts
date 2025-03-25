@@ -4,11 +4,16 @@ import { z } from "zod";
 import raindropService from './raindrop.service';
 import config from "../config/config";
 import { rateLimiterService } from "../middleware/rateLimiter";
+import { Collection, Bookmark, SearchParams } from "../types/raindrop";
 
 // Define request schemas
 const ListResourcesSchema = z.object({
   method: z.literal('listResources')
 });
+
+interface ToolParams {
+  [key: string]: any;
+}
 
 export class RaindropMCPService {
   private server: Server;
@@ -142,67 +147,19 @@ export class RaindropMCPService {
             }
           },
           
-          // Tag tools
+          // Tags
           getTags: {
             description: 'Get all tags from Raindrop.io',
             parameters: {}
           },
           
-          // User tools
+          // User
           getUserInfo: {
-            description: 'Get user information from Raindrop.io',
+            description: 'Get information about the current Raindrop.io user',
             parameters: {}
           },
           
-          // Highlight tools
-          getHighlights: {
-            description: 'Get highlights for a specific raindrop (bookmark)',
-            parameters: {
-              type: 'object',
-              properties: {
-                raindropId: { type: 'number', description: 'ID of the raindrop/bookmark to get highlights for' }
-              },
-              required: ['raindropId']
-            }
-          },
-          createHighlight: {
-            description: 'Create a new highlight for a raindrop',
-            parameters: {
-              type: 'object',
-              properties: {
-                raindropId: { type: 'number', description: 'ID of the raindrop/bookmark to add highlight to' },
-                text: { type: 'string', description: 'The text to highlight' },
-                note: { type: 'string', description: 'Optional note for this highlight' },
-                color: { type: 'string', description: 'Highlight color', default: 'yellow' }
-              },
-              required: ['raindropId', 'text']
-            }
-          },
-          updateHighlight: {
-            description: 'Update an existing highlight',
-            parameters: {
-              type: 'object',
-              properties: {
-                id: { type: 'number', description: 'ID of the highlight to update' },
-                text: { type: 'string', description: 'The updated highlight text' },
-                note: { type: 'string', description: 'Updated note for this highlight' },
-                color: { type: 'string', description: 'Updated highlight color' }
-              },
-              required: ['id']
-            }
-          },
-          deleteHighlight: {
-            description: 'Delete a highlight',
-            parameters: {
-              type: 'object',
-              properties: {
-                id: { type: 'number', description: 'ID of the highlight to delete' }
-              },
-              required: ['id']
-            }
-          },
-          
-          // Advanced search with filters
+          // Search
           searchRaindrops: {
             description: 'Advanced search for raindrops with multiple filter options',
             parameters: {
@@ -261,7 +218,7 @@ export class RaindropMCPService {
     });
 
     // Tool execution handler for getCollections
-    this.server.setToolHandler('getCollections', async () => {
+    (this.server as any).setToolHandler('getCollections', async () => {
       const collections = await raindropService.getCollections();
       return { collections };
     });
@@ -279,7 +236,7 @@ export class RaindropMCPService {
     });
 
     // Tool execution handler for createCollection
-    this.server.setToolHandler('createCollection', async (params) => {
+    (this.server as any).setToolHandler('createCollection', async (params: { name: string; isPublic?: boolean }) => {
       const { name, isPublic } = params;
       const collection = await raindropService.createCollection(name, isPublic);
       return { collection };
@@ -294,12 +251,12 @@ export class RaindropMCPService {
         tags: z.array(z.string()).optional()
       })
     }), async (req) => {
-      const bookmarks = await raindropService.getBookmarks(req.params);
+      const bookmarks = await raindropService.getBookmarks(req.params as SearchParams);
       return { bookmarks };
     });
 
     // Tool execution handler for getBookmarks
-    this.server.setToolHandler('getBookmarks', async (params) => {
+    (this.server as any).setToolHandler('getBookmarks', async (params: SearchParams) => {
       const bookmarks = await raindropService.getBookmarks(params);
       return { bookmarks };
     });
@@ -314,14 +271,14 @@ export class RaindropMCPService {
       })
     }), async (req) => {
       const { collectionId, ...bookmarkData } = req.params;
-      const bookmark = await raindropService.createBookmark(collectionId, bookmarkData);
+      const bookmark = await raindropService.createBookmark(collectionId, bookmarkData as Partial<Bookmark>);
       return { bookmark };
     });
 
     // Tool execution handler for createBookmark
-    this.server.setToolHandler('createBookmark', async (params) => {
+    (this.server as any).setToolHandler('createBookmark', async (params: { collectionId: number; title: string; link: string; tags?: string[] }) => {
       const { collectionId, ...bookmarkData } = params;
-      const bookmark = await raindropService.createBookmark(collectionId, bookmarkData);
+      const bookmark = await raindropService.createBookmark(collectionId, bookmarkData as Partial<Bookmark>);
       return { bookmark };
     });
 
@@ -334,7 +291,7 @@ export class RaindropMCPService {
     });
 
     // Tool execution handler for getTags
-    this.server.setToolHandler('getTags', async () => {
+    (this.server as any).setToolHandler('getTags', async () => {
       const tags = await raindropService.getTags();
       return { tags };
     });
@@ -348,7 +305,7 @@ export class RaindropMCPService {
     });
 
     // Tool execution handler for getUserInfo
-    this.server.setToolHandler('getUserInfo', async () => {
+    (this.server as any).setToolHandler('getUserInfo', async () => {
       const user = await raindropService.getUserInfo();
       return { user };
     });
@@ -365,7 +322,7 @@ export class RaindropMCPService {
     });
 
     // Tool execution handler for getBookmark
-    this.server.setToolHandler('getBookmark', async (params) => {
+    (this.server as any).setToolHandler('getBookmark', async (params: { id: number }) => {
       const bookmark = await raindropService.getBookmark(params.id);
       return { bookmark };
     });
@@ -382,14 +339,22 @@ export class RaindropMCPService {
       })
     }), async (req) => {
       const { id, ...updates } = req.params;
-      const bookmark = await raindropService.updateBookmark(id, updates);
+      const bookmarkUpdates: Partial<Bookmark> = {
+        ...updates,
+        collection: updates.collection ? { $id: updates.collection } : undefined
+      };
+      const bookmark = await raindropService.updateBookmark(id, bookmarkUpdates);
       return { bookmark };
     });
 
     // Tool execution handler for updateBookmark
-    this.server.setToolHandler('updateBookmark', async (params) => {
+    (this.server as any).setToolHandler('updateBookmark', async (params: { id: number; title?: string; excerpt?: string; tags?: string[]; collection?: number }) => {
       const { id, ...updates } = params;
-      const bookmark = await raindropService.updateBookmark(id, updates);
+      const bookmarkUpdates: Partial<Bookmark> = {
+        ...updates,
+        collection: updates.collection ? { $id: updates.collection } : undefined
+      };
+      const bookmark = await raindropService.updateBookmark(id, bookmarkUpdates);
       return { bookmark };
     });
 
@@ -405,7 +370,7 @@ export class RaindropMCPService {
     });
 
     // Tool execution handler for deleteBookmark
-    this.server.setToolHandler('deleteBookmark', async (params) => {
+    (this.server as any).setToolHandler('deleteBookmark', async (params: { id: number }) => {
       await raindropService.deleteBookmark(params.id);
       return { success: true };
     });
@@ -416,26 +381,34 @@ export class RaindropMCPService {
       params: z.object({
         id: z.number(),
         name: z.string().optional(),
-        isPublic: z.boolean().optional(),
-        view: z.string().optional()
+        view: z.string().optional(),
+        isPublic: z.boolean().optional()
       })
     }), async (req) => {
-      const { id, isPublic, ...rest } = req.params;
-      const updates = { ...rest };
+      const { id, name, view, isPublic } = req.params;
+      const updates: Partial<Collection> = {};
+      
+      if (name) updates.name = name;
+      if (view) updates.view = view;
       if (isPublic !== undefined) {
-        updates.public = isPublic;
+        (updates as any).public = isPublic;
       }
+      
       const collection = await raindropService.updateCollection(id, updates);
       return { collection };
     });
 
     // Tool execution handler for updateCollection
-    this.server.setToolHandler('updateCollection', async (params) => {
-      const { id, isPublic, ...rest } = params;
-      const updates = { ...rest };
+    (this.server as any).setToolHandler('updateCollection', async (params: { id: number; name?: string; view?: string; isPublic?: boolean }) => {
+      const { id, name, view, isPublic } = params;
+      const updates: Partial<Collection> = {};
+      
+      if (name) updates.name = name;
+      if (view) updates.view = view;
       if (isPublic !== undefined) {
-        updates.public = isPublic;
+        (updates as any).public = isPublic;
       }
+      
       const collection = await raindropService.updateCollection(id, updates);
       return { collection };
     });
@@ -452,12 +425,12 @@ export class RaindropMCPService {
     });
 
     // Tool execution handler for deleteCollection
-    this.server.setToolHandler('deleteCollection', async (params) => {
+    (this.server as any).setToolHandler('deleteCollection', async (params: { id: number }) => {
       await raindropService.deleteCollection(params.id);
       return { success: true };
     });
 
-    // Advanced search with filters
+    // Advanced search
     this.server.setRequestHandler(z.object({
       method: z.literal('searchRaindrops'),
       params: z.object({
@@ -473,18 +446,17 @@ export class RaindropMCPService {
         sort: z.string().optional()
       })
     }), async (req) => {
-      const searchResults = await raindropService.getBookmarks(req.params);
+      const searchResults = await raindropService.getBookmarks(req.params as SearchParams);
       return { results: searchResults };
     });
 
     // Tool execution handler for searchRaindrops
-    this.server.setToolHandler('searchRaindrops', async (params) => {
+    (this.server as any).setToolHandler('searchRaindrops', async (params: SearchParams) => {
       const searchResults = await raindropService.getBookmarks(params);
       return { results: searchResults };
     });
 
-    // Highlight handlers
-    // Get highlights for a raindrop
+    // Highlights
     this.server.setRequestHandler(z.object({
       method: z.literal('getHighlights'),
       params: z.object({
@@ -496,7 +468,7 @@ export class RaindropMCPService {
     });
 
     // Tool execution handler for getHighlights
-    this.server.setToolHandler('getHighlights', async (params) => {
+    (this.server as any).setToolHandler('getHighlights', async (params: { raindropId: number }) => {
       const highlights = await raindropService.getHighlights(params.raindropId);
       return { highlights };
     });
@@ -511,15 +483,27 @@ export class RaindropMCPService {
         color: z.string().optional()
       })
     }), async (req) => {
-      const { raindropId, ...highlightData } = req.params;
-      const highlight = await raindropService.createHighlight(raindropId, highlightData);
+      const highlight = await raindropService.createHighlight(
+        req.params.raindropId,
+        {
+          text: req.params.text,
+          note: req.params.note,
+          color: req.params.color
+        }
+      );
       return { highlight };
     });
 
     // Tool execution handler for createHighlight
-    this.server.setToolHandler('createHighlight', async (params) => {
-      const { raindropId, ...highlightData } = params;
-      const highlight = await raindropService.createHighlight(raindropId, highlightData);
+    (this.server as any).setToolHandler('createHighlight', async (params: { raindropId: number; text: string; note?: string; color?: string }) => {
+      const highlight = await raindropService.createHighlight(
+        params.raindropId,
+        {
+          text: params.text,
+          note: params.note,
+          color: params.color
+        }
+      );
       return { highlight };
     });
 
@@ -533,15 +517,19 @@ export class RaindropMCPService {
         color: z.string().optional()
       })
     }), async (req) => {
-      const { id, ...updates } = req.params;
-      const highlight = await raindropService.updateHighlight(id, updates);
+      const highlight = await raindropService.updateHighlight(
+        req.params.id,
+        req.params
+      );
       return { highlight };
     });
 
     // Tool execution handler for updateHighlight
-    this.server.setToolHandler('updateHighlight', async (params) => {
-      const { id, ...updates } = params;
-      const highlight = await raindropService.updateHighlight(id, updates);
+    (this.server as any).setToolHandler('updateHighlight', async (params: { id: number; text?: string; note?: string; color?: string }) => {
+      const highlight = await raindropService.updateHighlight(
+        params.id,
+        params
+      );
       return { highlight };
     });
 
@@ -557,7 +545,7 @@ export class RaindropMCPService {
     });
 
     // Tool execution handler for deleteHighlight
-    this.server.setToolHandler('deleteHighlight', async (params) => {
+    (this.server as any).setToolHandler('deleteHighlight', async (params: { id: number }) => {
       await raindropService.deleteHighlight(params.id);
       return { success: true };
     });
