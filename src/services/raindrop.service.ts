@@ -112,6 +112,59 @@ class RaindropService {
     const { data } = await this.api.get('/user');
     return data.user;
   }
+
+  // Highlights
+  async getHighlights(raindropId: number): Promise<any[]> {
+    const { data } = await this.api.get(`/raindrop/${raindropId}/highlights`);
+    return data.items;
+  }
+
+  async createHighlight(raindropId: number, highlightData: { text: string; note?: string; color?: string }): Promise<any> {
+    const { data } = await this.api.post(`/raindrop/${raindropId}/highlight`, highlightData);
+    return data.item;
+  }
+
+  async updateHighlight(id: number, updates: { text?: string; note?: string; color?: string }): Promise<any> {
+    const { data } = await this.api.put(`/highlight/${id}`, updates);
+    return data.item;
+  }
+
+  async deleteHighlight(id: number): Promise<void> {
+    await this.api.delete(`/highlight/${id}`);
+  }
+
+  // Advanced search with filters
+  async searchRaindrops(params: {
+    search?: string;
+    collection?: number; 
+    tags?: string[];
+    createdStart?: string;
+    createdEnd?: string;
+    important?: boolean;
+    media?: string;
+    page?: number;
+    perPage?: number;
+    sort?: string;
+  }): Promise<{ items: Bookmark[]; count: number }> {
+    // Convert date ranges to Raindrop API format if provided
+    const queryParams: Record<string, any> = { ...params };
+    
+    if (params.createdStart || params.createdEnd) {
+      queryParams.created = {};
+      if (params.createdStart) queryParams.created.$gte = params.createdStart;
+      if (params.createdEnd) queryParams.created.$lte = params.createdEnd;
+      
+      // Remove the original params
+      delete queryParams.createdStart;
+      delete queryParams.createdEnd;
+    }
+    
+    const { data } = await this.api.get('/raindrops', { 
+      params: queryParams 
+    });
+    
+    return data;
+  }
 }
 
 export default new RaindropService();

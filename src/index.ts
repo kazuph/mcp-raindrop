@@ -1,9 +1,9 @@
-import { mcpService } from './services/mcp.service';
+import mcpService from './services/mcp.service';
 import { mcpSSEService } from './services/mcp-sse.service';
 
 async function main() {
   try {
-    // Start MCP SSE server (replaces Express)
+    // Start MCP SSE server
     await mcpSSEService.start();
     
     // Start regular MCP server

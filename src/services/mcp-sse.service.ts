@@ -1,5 +1,6 @@
 import { MCPServer, MCPFunctionDefinition } from '@modelcontextprotocol/sdk';
 import { raindropClient } from './raindrop.service';
+import config from '../config/config';
 
 export class MCPSSEService {
   private mcpServer: MCPServer;
@@ -70,4 +71,4 @@ export class MCPSSEService {
   }
 }
 
-export const mcpSSEService = new MCPSSEService(process.env.PORT ? parseInt(process.env.PORT) : 3000);
+export const mcpSSEService = new MCPSSEService(config.port);
