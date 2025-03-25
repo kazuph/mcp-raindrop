@@ -1,6 +1,6 @@
-import type { Request, Response } from 'express';
+import type { Collection, Bookmark, SearchParams } from '../types/raindrop.js';
 import raindropService from '../services/raindrop.service';
-import type { Collection, Bookmark, SearchParams } from '../types/raindrop';
+import type { Request, Response } from 'express';
 
 export const raindropController = {
   // Collections

@@ -2,7 +2,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import raindropClient from './raindrop.service';
 import config from '../config/config';
 import { EventEmitter } from 'events';
-import { SearchParams, BookmarkResult } from '../types/raindrop';
+import type { SearchParams, BookmarkResult } from '../types/raindrop.js';
 
 // Define a custom function definition interface since it's not exported by the SDK
 interface MCPFunctionDefinition {
@@ -42,7 +42,10 @@ export class MCPSSEService {
           }
           
           // Initial data fetch
-          const searchParams: SearchParams = { search, collection };
+          const searchParams: SearchParams = { 
+            search, 
+            collection: collection ? Number(collection) : undefined // Convert collection to number
+          };
           const bookmarks = await raindropClient.getBookmarks(searchParams);
           
           // Send initial data
@@ -53,7 +56,7 @@ export class MCPSSEService {
             try {
               const updatedParams: SearchParams = { 
                 search, 
-                collection, 
+                collection: collection ? Number(collection) : undefined, // Convert collection to number
                 since: new Date(Date.now() - 60000) 
               };
               

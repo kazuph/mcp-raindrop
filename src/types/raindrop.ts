@@ -39,10 +39,10 @@ export interface Highlight {
 }
 
 export interface SearchParams {
-  collection?: string | number;
+  collection?: number;
   search?: string;
   tags?: string[];
-  sort?: "-created" | "created" | "-title" | "title" | string;
+  sort?: "-created" | "created" | "-title" | "title" | undefined; // Updated to match service expectations
   page?: number;
   perPage?: number;
   since?: Date;

@@ -4,7 +4,7 @@ import { z } from "zod";
 import raindropService from './raindrop.service';
 import config from "../config/config";
 import { rateLimiterService } from "../middleware/rateLimiter";
-import { Collection, Bookmark, SearchParams } from "../types/raindrop";
+import type { Collection, Bookmark, SearchParams } from "../types/raindrop.js";
 
 // Define request schemas
 const ListResourcesSchema = z.object({
