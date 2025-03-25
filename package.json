@@ -6,7 +6,7 @@
     "scripts": {
         "start": "bun run src/index.ts",
         "dev": "bun --watch run src/index.ts",
-        "watch": "npx @modelcontextprotocol/inspector build/index.ts",
+        "watch": "npx @modelcontextprotocol/inspector bun run src/index.ts",
         "type-check": "tsc --noEmit",
         "test": "node --loader vitest/vitest.mjs",
         "test:coverage": "node --loader vitest/vitest.mjs run --coverage",
