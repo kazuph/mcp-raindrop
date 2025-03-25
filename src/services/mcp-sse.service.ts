@@ -93,12 +93,10 @@ export class MCPSSEService {
 
   // Add missing start method
   public async start(): Promise<void> {
-    console.log(`MCP SSE Server is running on port ${config.port}`);
   }
 
   // Add missing stop method
   public async stop(): Promise<void> {
-    console.log('MCP SSE Server stopped');
   }
 }
 

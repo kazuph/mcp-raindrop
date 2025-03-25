@@ -292,13 +292,11 @@ export class RaindropMCPService {
   }
 
   public async start() {
-    const transport = new StdioServerTransport();
+    const transport = new StdioServerTransport(process.stdin, process.stdout);
     await this.server.connect(transport);
-    console.log(`MCP Server is running on port ${config.port}`);
   }
 
   public async stop() {
-    console.log('MCP Server stopped');
   }
 }
 

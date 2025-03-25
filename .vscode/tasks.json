@@ -16,7 +16,7 @@
 			"type": "bun",
 			"script": "start",
 			"problemMatcher": [],
-			"label": "bun run srcindex.ts",
+			"label": "bun run src/index.ts",
 			"detail": "bun run src/index.ts",
 			"group": {
 				"kind": "build",
