@@ -111,6 +111,13 @@ class RaindropService {
     return data.items;
   }
 
+  public async deleteTags(collectionId: number | undefined, tags: string[]): Promise<void> {
+    // Implement the logic to delete tags here
+    // For example, make an API call to delete the tags
+    console.log(`Deleting tags [${tags.join(", ")}] from collection ID ${collectionId}`);
+    // Add actual implementation here
+  }
+
   // User
   async getUserInfo() {
     const { data } = await this.api.get('/user');
@@ -185,6 +192,27 @@ class RaindropService {
     });
     
     return data;
+  }
+
+  // Add file upload functionality
+  async uploadFile(collectionId: string, file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('collectionId', collectionId);
+
+    const { data } = await this.api.put('/raindrop/file', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return data.item;
+  }
+
+  // Add reminder management functionality
+  async setReminder(raindropId: number, reminder: { date: string; note?: string }): Promise<any> {
+    const { data } = await this.api.put(`/raindrop/${raindropId}/reminder`, reminder);
+    return data.item;
   }
 }
 
