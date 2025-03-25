@@ -118,9 +118,12 @@ class RaindropService {
   }
 
   // Highlights
-  async getHighlights(raindropId: number): Promise<any[]> {
-    const { data } = await this.api.get(`/raindrop/${raindropId}/highlights`);
-    return data.items;
+  async getHighlights(raindropId: number): Promise<{ text: string; note?: string; color?: string; created: string; lastUpdate: string }[]> {
+    const { data } = await this.api.get(`/raindrop/${raindropId}`);
+    if (!data || !data.item || !data.item.highlights) {
+      throw new Error('Invalid response structure from Raindrop.io API');
+    }
+    return data.item.highlights;
   }
 
   async createHighlight(raindropId: number, highlightData: { text: string; note?: string; color?: string }): Promise<any> {
@@ -135,6 +138,14 @@ class RaindropService {
 
   async deleteHighlight(id: number): Promise<void> {
     await this.api.delete(`/highlight/${id}`);
+  }
+
+  async getAllHighlights(): Promise<{ _id: number; text: string; note?: string; color?: string; created: string; lastUpdate: string }[]> {
+    const { data } = await this.api.get('/highlights');
+    if (!data || !data.items) {
+      throw new Error('Invalid response structure from Raindrop.io API');
+    }
+    return data.items;
   }
 
   // Advanced search with filters
