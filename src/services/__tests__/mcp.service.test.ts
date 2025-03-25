@@ -131,7 +131,7 @@ describe('RaindropMCPService', () => {
     });
 
     it('should set up getTags handler', () => {
-      const mockTags = ['tag1', 'tag2'];
+      const mockTags = [{ _id: 'tag1', count: 10 }, { _id: 'tag2', count: 5 }];
       (raindropService.getTags as any).mockResolvedValue(mockTags);
 
       const handler = mockServer.setRequestHandler.mock.calls[5][1];

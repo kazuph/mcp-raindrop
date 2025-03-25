@@ -102,8 +102,12 @@ class RaindropService {
   }
 
   // Tags
-  async getTags(): Promise<string[]> {
-    const { data } = await this.api.get('/tags');
+  async getTags(collectionId?: number): Promise<{ _id: string; count: number }[]> {
+    const endpoint = collectionId ? `/tags/${collectionId}` : '/tags/0';
+    const { data } = await this.api.get(endpoint);
+    if (!data || !data.items) {
+      throw new Error('Invalid response structure from Raindrop.io API');
+    }
     return data.items;
   }
 

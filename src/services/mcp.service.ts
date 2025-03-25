@@ -87,7 +87,7 @@ export class RaindropMCPService {
       async ({ collectionId }) => {
         const tags = await raindropService.getTags(collectionId);
         return {
-          content: tags.items.map(tag => ({
+          content: tags.map(tag => ({
             type: "text", // Assuming "text" type is expected for tags
             text: tag._id, // Use "_id" for the tag name
             count: tag.count // Include the count of tag usage
@@ -159,7 +159,7 @@ export class RaindropMCPService {
       async () => {
         const tags = await raindropService.getTags();
         return {
-          content: tags.items.map(tag => ({
+          content: tags.map(tag => ({
             type: "text",
             text: tag._id,
             count: tag.count
@@ -204,6 +204,88 @@ export class RaindropMCPService {
             created: highlight.created, // Include the creation date
             lastUpdate: highlight.lastUpdate // Include the last update date
           }))
+        };
+      }
+    );
+
+    // Tool for reordering collections
+    this.server.tool(
+      "reorderCollections",
+      {
+        sort: z.enum(["title", "-title", "-count"]).describe("Sort order: 'title', '-title', or '-count'")
+      },
+      async ({ sort }) => {
+        await raindropService.reorderCollections(sort);
+        return {
+          content: [{
+            type: "text",
+            text: `Collections reordered by '${sort}'`
+          }]
+        };
+      }
+    );
+
+    // Tool for expanding/collapsing all collections
+    this.server.tool(
+      "toggleCollectionsExpansion",
+      {
+        expand: z.boolean().describe("True to expand all collections, false to collapse")
+      },
+      async ({ expand }) => {
+        await raindropService.toggleCollectionsExpansion(expand);
+        return {
+          content: [{
+            type: "text",
+            text: `Collections ${expand ? "expanded" : "collapsed"}`
+          }]
+        };
+      }
+    );
+
+    // Tool for merging collections
+    this.server.tool(
+      "mergeCollections",
+      {
+        targetCollectionId: z.number().describe("ID of the target collection"),
+        collectionIds: z.array(z.number()).describe("List of collection IDs to merge")
+      },
+      async ({ targetCollectionId, collectionIds }) => {
+        await raindropService.mergeCollections(targetCollectionId, collectionIds);
+        return {
+          content: [{
+            type: "text",
+            text: `Collections [${collectionIds.join(", ")}] merged into collection ID ${targetCollectionId}`
+          }]
+        };
+      }
+    );
+
+    // Tool for removing empty collections
+    this.server.tool(
+      "removeEmptyCollections",
+      "Remove all empty collections",
+      async () => {
+        const result = await raindropService.removeEmptyCollections();
+        return {
+          content: [{
+            type: "text",
+            text: `${result.count} empty collections removed`
+          }]
+        };
+      }
+    );
+
+    // Tool for emptying the trash
+    this.server.tool(
+      "emptyTrash",
+      "Empty the trash collection",
+      async () => {
+        await raindropService.emptyTrash();
+        return {
+          content: [{
+            type: "text",
+            text: "Trash emptied successfully"
+          }]
         };
       }
     );
