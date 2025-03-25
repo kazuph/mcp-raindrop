@@ -64,7 +64,19 @@ export class RaindropMCPService {
         tags: z.array(z.string()).optional().describe("Tags to filter bookmarks")
       },
       async (params) => {
-        const bookmarks = await raindropService.getBookmarks(params);
+        const filters: Record<string, any> = {};
+
+        if (params.collectionId) {
+          filters.collection = params.collectionId;
+        }
+        if (params.search) {
+          filters.search = params.search;
+        }
+        if (params.tags) {
+          filters.tag = params.tags;
+        }
+
+        const bookmarks = await raindropService.getBookmarks(filters);
         return {
           content: bookmarks.items.map((bookmark: Bookmark) => ({
             type: "text", // Assuming "text" type is expected for bookmarks

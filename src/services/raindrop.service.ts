@@ -118,6 +118,42 @@ class RaindropService {
     // Add actual implementation here
   }
 
+  public async renameTag(collectionId: number | undefined, oldName: string, newName: string): Promise<void> {
+    console.log(`Renaming tag '${oldName}' to '${newName}' in collection ID ${collectionId}`);
+    // Add actual implementation here
+  }
+
+  public async mergeTags(collectionId: number | undefined, tags: string[], newName: string): Promise<void> {
+    console.log(`Merging tags [${tags.join(", ")}] into '${newName}' in collection ID ${collectionId}`);
+    // Add actual implementation here
+  }
+
+  public async reorderCollections(sort: string): Promise<void> {
+    console.log(`Reordering collections by '${sort}'`);
+    // Add actual implementation here
+  }
+
+  public async toggleCollectionsExpansion(expand: boolean): Promise<void> {
+    console.log(`Collections ${expand ? "expanded" : "collapsed"}`);
+    // Add actual implementation here
+  }
+
+  public async mergeCollections(targetCollectionId: number, collectionIds: number[]): Promise<void> {
+    console.log(`Merging collections [${collectionIds.join(", ")}] into collection ID ${targetCollectionId}`);
+    // Add actual implementation here
+  }
+
+  public async removeEmptyCollections(): Promise<{ count: number }> {
+    console.log("Removing all empty collections");
+    // Add actual implementation here
+    return { count: 0 };
+  }
+
+  public async emptyTrash(): Promise<void> {
+    console.log("Emptying the trash");
+    // Add actual implementation here
+  }
+
   // User
   async getUserInfo() {
     const { data } = await this.api.get('/user');
