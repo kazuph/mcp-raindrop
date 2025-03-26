@@ -1,102 +1,130 @@
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 import raindropClient from './raindrop.service';
 import config from '../config/config';
-import { EventEmitter } from 'events';
-import type { SearchParams, BookmarkResult } from '../types/raindrop.js';
-
-// Define a custom function definition interface since it's not exported by the SDK
-interface MCPFunctionDefinition {
-  name: string;
-  description: string;
-  parameters: {
-    type: string;
-    properties?: Record<string, any>;
-    required?: string[];
-  };
-  streaming?: boolean;
-  handler: (params: any, eventEmitter?: EventEmitter) => Promise<any>;
-}
+import type { SearchParams } from '../types/raindrop.js';
 
 export class MCPSSEService {
-  private mcpServer: Server;
+  private mcpServer: McpServer;
 
   constructor(port: number) {
+    // Initialize MCP server
+    this.mcpServer = new McpServer({
+      name: 'raindrop-mcp-sse',
+      version: '1.0.0',
+      description: 'MCP SSE Server for Raindrop.io bookmarking service'
+    });
+
     // Define the SSE function for streaming Raindrop data
-    const streamBookmarksFn: MCPFunctionDefinition = {
-      name: 'streamBookmarks',
-      description: 'Stream bookmarks from Raindrop.io with real-time updates',
-      parameters: {
-        type: 'object',
-        properties: {
-          search: { type: 'string', description: 'Search query for filtering bookmarks' },
-          collection: { type: 'string', description: 'Collection ID to filter bookmarks' },
-          limit: { type: 'number', description: 'Maximum number of bookmarks to return' }
-        },
-        required: []
+    this.mcpServer.tool(
+      'streamBookmarks',
+      'Stream bookmarks from Raindrop.io with real-time updates',
+      {
+        search: z.string().optional().describe('Search query for filtering bookmarks'),
+        collection: z.string().optional().describe('Collection ID to filter bookmarks'),
+        limit: z.number().optional().describe('Maximum number of bookmarks to return')
       },
-      streaming: true, // Enable SSE streaming
-      handler: async ({ search, collection, limit }: { search?: string; collection?: string; limit?: number }, eventEmitter?: EventEmitter) => {
+      async ({ search, collection, limit }: { search?: string; collection?: string; limit?: number }, extra) => {
+        let isStreaming = true;
+        let interval: NodeJS.Timeout;
+
         try {
-          if (!eventEmitter) {
-            throw new Error('Event emitter is required for streaming functions');
-          }
-          
           // Initial data fetch
           const searchParams: SearchParams = { 
             search, 
-            collection: collection ? Number(collection) : undefined // Convert collection to number
+            collection: collection ? Number(collection) : undefined
           };
           const bookmarks = await raindropClient.getBookmarks(searchParams);
           
           // Send initial data
-          eventEmitter.emit('data', { bookmarks });
-          
-          // Set up polling for updates (in a real implementation, you might use webhooks instead)
-          const interval = setInterval(async () => {
-            try {
-              const updatedParams: SearchParams = { 
-                search, 
-                collection: collection ? Number(collection) : undefined, // Convert collection to number
-                since: new Date(Date.now() - 60000) 
-              };
-              
-              const updatedBookmarks = await raindropClient.getBookmarks(updatedParams) as BookmarkResult;
-              
-              if (updatedBookmarks.items.length > 0) {
-                eventEmitter.emit('data', { newBookmarks: updatedBookmarks.items });
+          return {
+            content: bookmarks.items.map(bookmark => ({
+              type: "resource",
+              resource: {
+                text: bookmark.title || "Untitled Bookmark",
+                uri: bookmark.link,
+                metadata: {
+                  id: bookmark._id,
+                  excerpt: bookmark.excerpt,
+                  tags: bookmark.tags,
+                  collectionId: bookmark.collection?.$id,
+                  created: bookmark.created,
+                  lastUpdate: bookmark.lastUpdate,
+                  type: bookmark.type
+                }
               }
-            } catch (error) {
-              eventEmitter.emit('error', { message: 'Error fetching updates', error });
-            }
-          }, 30000); // Check for updates every 30 seconds
-          
-          // Clean up on client disconnect
-          eventEmitter.on('close', () => {
-            clearInterval(interval);
-          });
+            })),
+            stream: new Promise((resolve, reject) => {
+              interval = setInterval(async () => {
+                if (!isStreaming) {
+                  clearInterval(interval);
+                  resolve(undefined);
+                  return;
+                }
+
+                try {
+                  const updatedParams: SearchParams = { 
+                    search, 
+                    collection: collection ? Number(collection) : undefined,
+                    since: new Date(Date.now() - 60000) 
+                  };
+                  
+                  const updatedBookmarks = await raindropClient.getBookmarks(updatedParams);
+                  
+                  if (updatedBookmarks.items.length > 0) {
+                    return {
+                      content: updatedBookmarks.items.map(bookmark => ({
+                        type: "resource",
+                        resource: {
+                          text: bookmark.title || "Untitled Bookmark",
+                          uri: bookmark.link,
+                          metadata: {
+                            id: bookmark._id,
+                            excerpt: bookmark.excerpt,
+                            tags: bookmark.tags,
+                            collectionId: bookmark.collection?.$id,
+                            created: bookmark.created,
+                            lastUpdate: bookmark.lastUpdate,
+                            type: bookmark.type
+                          }
+                        }
+                      }))
+                    };
+                  }
+                } catch (error) {
+                  isStreaming = false;
+                  clearInterval(interval);
+                  reject(error);
+                }
+              }, 30000);
+
+              // Clean up on cancel
+              extra.signal?.addEventListener('abort', () => {
+                isStreaming = false;
+                clearInterval(interval);
+                resolve(undefined);
+              });
+            })
+          };
         } catch (error) {
-          if (eventEmitter) {
-            eventEmitter.emit('error', { message: 'Failed to fetch bookmarks', error });
-            eventEmitter.emit('end');
-          }
           throw error;
         }
       }
-    };
-
-    // Initialize MCP server with the SSE function
-    this.mcpServer = new Server({
-      port,
-      functions: [streamBookmarksFn]
-    } as any);
+    );
   }
 
-  // Add missing start method
   public async start(): Promise<void> {
+    try {
+      const transport = new StdioServerTransport(process.stdin, process.stdout);
+      await this.mcpServer.connect(transport);
+    } catch (error) {
+      throw error;
+    }
   }
 
-  // Add missing stop method
   public async stop(): Promise<void> {
+    // Nothing needed here as the StdioServerTransport handles cleanup
   }
 }
 

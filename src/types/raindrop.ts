@@ -8,8 +8,8 @@ export interface Collection {
   view?: string;
   public?: boolean;
   user?: { $id: number };
-  created?: string;
-  lastUpdate?: string;
+  created: string;  // Changed to non-optional as it's always present in API responses
+  lastUpdate?: string;  // Matches Raindrop.io API field name
 }
 
 // https://developer.raindrop.io/v1/raindrops/single

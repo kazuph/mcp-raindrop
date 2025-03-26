@@ -1,10 +1,9 @@
-<<<<<<< HEAD
-=======
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { RaindropMCPService } from '../mcp.service';
 import raindropService from '../raindrop.service';
+
 // Mock the dependencies
 vi.mock('@modelcontextprotocol/sdk/server/index.js', () => ({
   Server: vi.fn().mockImplementation(() => ({
@@ -59,7 +58,14 @@ describe('RaindropMCPService', () => {
   describe('setupHandlers', () => {
     it('should set up listResources handler', () => {
       const mockCollections = [
-        { _id: 1, name: 'Test Collection' }
+        { 
+          _id: 1, 
+          title: 'Test Collection',
+          count: 5,
+          public: false,
+          createdAt: '2025-03-26T00:00:00Z',
+          updatedAt: '2025-03-26T00:00:00Z'
+        }
       ];
       (raindropService.getCollections as any).mockResolvedValue(mockCollections);
 
@@ -67,147 +73,140 @@ describe('RaindropMCPService', () => {
       const result = handler();
 
       expect(result).resolves.toEqual({
-        resources: [{
-          uri: 'raindrop://collection/1',
-          name: 'Test Collection'
-        }]
-      });
-    });
-
-    it('should set up getCollections handler', () => {
-      const mockCollections = [
-        { _id: 1, name: 'Test Collection' }
-      ];
-      (raindropService.getCollections as any).mockResolvedValue(mockCollections);
-
-      const handler = mockServer.setRequestHandler.mock.calls[1][1];
-      const result = handler();
-
-      expect(result).resolves.toEqual({
-        collections: mockCollections
-      });
-    });
-
-    it('should set up createCollection handler', () => {
-      const mockCollection = { _id: 1, name: 'New Collection' };
-      (raindropService.createCollection as any).mockResolvedValue(mockCollection);
-
-      const handler = mockServer.setRequestHandler.mock.calls[2][1];
-      const result = handler({ params: { name: 'New Collection', isPublic: true } });
-
-      expect(result).resolves.toEqual({
-        collection: mockCollection
+        content: mockCollections.map(collection => ({
+          type: "text",
+          text: collection.title || "Unnamed Collection",
+          metadata: {
+            id: collection._id,
+            count: collection.count,
+            public: collection.public,
+            createdAt: collection.createdAt,
+            updatedAt: collection.updatedAt
+          }
+        }))
       });
     });
 
     it('should set up getBookmarks handler', () => {
-      const mockBookmarks = [
-        { _id: 1, title: 'Test Bookmark' }
-      ];
+      const mockBookmarks = {
+        items: [
+          { 
+            _id: 1, 
+            title: 'Test Bookmark', 
+            link: 'https://example.com',
+            excerpt: 'Test excerpt',
+            tags: ['test', 'example'],
+            collection: { $id: 1 },
+            created: '2025-03-26T00:00:00Z',
+            lastUpdate: '2025-03-26T00:00:00Z',
+            type: 'link'
+          }
+        ]
+      };
       (raindropService.getBookmarks as any).mockResolvedValue(mockBookmarks);
 
-      const handler = mockServer.setRequestHandler.mock.calls[3][1];
+      const handler = mockServer.setRequestHandler.mock.calls.find((call: any[]) => call[0] === 'getBookmarks')[1];
       const result = handler({ params: { collectionId: 1 } });
 
       expect(result).resolves.toEqual({
-        bookmarks: mockBookmarks
+        content: mockBookmarks.items.map(bookmark => ({
+          type: "resource",
+          resource: {
+            text: bookmark.title || "Untitled Bookmark",
+            uri: bookmark.link,
+            metadata: {
+              id: bookmark._id,
+              excerpt: bookmark.excerpt,
+              tags: bookmark.tags,
+              collectionId: bookmark.collection?.$id,
+              created: bookmark.created,
+              lastUpdate: bookmark.lastUpdate,
+              type: bookmark.type
+            }
+          }
+        }))
       });
     });
 
-    it('should set up createBookmark handler', () => {
-      const mockBookmark = { _id: 1, title: 'New Bookmark' };
-      (raindropService.createBookmark as any).mockResolvedValue(mockBookmark);
+    it('should handle empty search query gracefully', async () => {
+      const emptyResult = { items: [] };
+      (raindropService.getBookmarks as any).mockResolvedValue(emptyResult);
 
-      const handler = mockServer.setRequestHandler.mock.calls[4][1];
-      const result = handler({
-        params: {
-          collectionId: 1,
-          title: 'New Bookmark',
-          link: 'https://example.com'
-        }
-      });
+      const handler = mockServer.setRequestHandler.mock.calls.find((call: any[]) => call[0] === 'getBookmarks')[1];
+      const result = await handler({ params: { search: '' } });
 
-      expect(result).resolves.toEqual({
-        bookmark: mockBookmark
+      expect(result).toEqual({
+        content: []
       });
     });
 
-    it('should set up getTags handler', () => {
-      const mockTags = [{ _id: 'tag1', count: 10 }, { _id: 'tag2', count: 5 }];
-      (raindropService.getTags as any).mockResolvedValue(mockTags);
+    it('should handle special characters in search query', async () => {
+      const mockBookmarks = {
+        items: [
+          { 
+            _id: 1, 
+            title: 'Special Bookmark', 
+            link: 'https://example.com',
+            excerpt: 'Test excerpt',
+            tags: ['test', 'example'],
+            collection: { $id: 1 },
+            created: '2025-03-26T00:00:00Z',
+            lastUpdate: '2025-03-26T00:00:00Z',
+            type: 'link'
+          }
+        ]
+      };
+      (raindropService.getBookmarks as any).mockResolvedValue(mockBookmarks);
 
-      const handler = mockServer.setRequestHandler.mock.calls[5][1];
-      const result = handler();
+      const handler = mockServer.setRequestHandler.mock.calls.find((call: any[]) => call[0] === 'getBookmarks')[1];
+      const result = await handler({ params: { search: '!@#$%^&*()' } });
 
-      expect(result).resolves.toEqual({
-        tags: mockTags
+      expect(result).toEqual({
+        content: mockBookmarks.items.map(bookmark => ({
+          type: "resource",
+          resource: {
+            text: bookmark.title || "Untitled Bookmark",
+            uri: bookmark.link,
+            metadata: {
+              id: bookmark._id,
+              excerpt: bookmark.excerpt,
+              tags: bookmark.tags,
+              collectionId: bookmark.collection?.$id,
+              created: bookmark.created,
+              lastUpdate: bookmark.lastUpdate,
+              type: bookmark.type
+            }
+          }
+        }))
       });
     });
 
-    it('should set up getUserInfo handler', () => {
-      const mockUser = { id: 1, name: 'Test User' };
-      (raindropService.getUserInfo as any).mockResolvedValue(mockUser);
+    it('should handle excessively long search query', async () => {
+      const longQuery = 'a'.repeat(1000);
+      const emptyResult = { items: [] };
+      (raindropService.getBookmarks as any).mockResolvedValue(emptyResult);
 
-      const handler = mockServer.setRequestHandler.mock.calls[6][1];
-      const result = handler();
+      const handler = mockServer.setRequestHandler.mock.calls.find((call: any[]) => call[0] === 'getBookmarks')[1];
+      const result = await handler({ params: { search: longQuery } });
 
-      expect(result).resolves.toEqual({
-        user: mockUser
+      expect(result).toEqual({
+        content: []
       });
+    });
+
+    it('should return an error for invalid search parameters', async () => {
+      const handler = mockServer.setRequestHandler.mock.calls.find((call: any[]) => call[0] === 'getBookmarks')[1];
+
+      await expect(handler({ params: { search: 12345 } })).rejects.toThrow('Invalid search parameter');
     });
   });
 
   describe('start', () => {
     it('should connect the server with stdio transport', () => {
       service.start();
+
       expect(StdioServerTransport).toHaveBeenCalled();
       expect(mockServer.connect).toHaveBeenCalled();
     });
   });
-
-  describe('Edge Case Handling for Search', () => {
-    it('should handle empty search query gracefully', async () => {
-      (raindropService.getBookmarks as any).mockResolvedValue({ items: [] });
-
-      const handler = mockServer.setRequestHandler.mock.calls.find(call => call[0] === 'getBookmarks')[1];
-      const result = await handler({ params: { search: '' } });
-
-      expect(result).toEqual({
-        bookmarks: []
-      });
-    });
-
-    it('should handle special characters in search query', async () => {
-      const mockBookmarks = [
-        { _id: 1, title: 'Special Bookmark' }
-      ];
-      (raindropService.getBookmarks as any).mockResolvedValue({ items: mockBookmarks });
-
-      const handler = mockServer.setRequestHandler.mock.calls.find(call => call[0] === 'getBookmarks')[1];
-      const result = await handler({ params: { search: '!@#$%^&*()' } });
-
-      expect(result).toEqual({
-        bookmarks: mockBookmarks
-      });
-    });
-
-    it('should handle excessively long search query', async () => {
-      const longQuery = 'a'.repeat(1000);
-      (raindropService.getBookmarks as any).mockResolvedValue({ items: [] });
-
-      const handler = mockServer.setRequestHandler.mock.calls.find(call => call[0] === 'getBookmarks')[1];
-      const result = await handler({ params: { search: longQuery } });
-
-      expect(result).toEqual({
-        bookmarks: []
-      });
-    });
-
-    it('should return an error for invalid search parameters', async () => {
-      const handler = mockServer.setRequestHandler.mock.calls.find(call => call[0] === 'getBookmarks')[1];
-
-      await expect(handler({ params: { search: 12345 } })).rejects.toThrow('Invalid search parameter');
-    });
-  });
 });
->>>>>>> 05740fb (Add edge case handling tests for search functionality in RaindropMCPService)

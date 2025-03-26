@@ -1,41 +1,18 @@
 import axios, { Axios } from 'axios';
 import config from '../config/config';
 
-export interface Collection {
-  _id: number;
-  title: string; // Changed from name to title to match API documentation
-  count: number;
-  public: boolean;
-  view: string;
-  creatorRef: {
+// Import shared types
+import type { Collection as BaseCollection, Bookmark as BaseBookmark, SearchParams } from '../types/raindrop.js';
+
+// Extend the base Collection type with service-specific fields
+export interface Collection extends BaseCollection {
+  creatorRef?: {
     _id: number;
     name: string;
   };
 }
 
-export interface Bookmark {
-  _id: number;
-  title: string;
-  excerpt: string;
-  link: string;
-  created: string;
-  lastUpdate: string;
-  tags: string[];
-  type: string;
-  cover: string;
-  collection: {
-    $id: number;
-  };
-}
-
-export interface SearchParams {
-  search?: string;
-  collection?: number;
-  page?: number;
-  perPage?: number;
-  sort?: '-created' | 'created' | '-title' | 'title';
-  tags?: string[];
-}
+export interface Bookmark extends BaseBookmark {}
 
 class RaindropService {
   private api: Axios;
@@ -267,6 +244,87 @@ class RaindropService {
   async setReminder(raindropId: number, reminder: { date: string; note?: string }): Promise<any> {
     const { data } = await this.api.put(`/raindrop/${raindropId}/reminder`, reminder);
     return data.item;
+  }
+
+  // Import functionality
+  async importBookmarks(options: {
+    collection?: number;
+    format: 'html' | 'csv' | 'pocket' | 'instapaper' | 'netscape' | 'readwise';
+    file: any;
+    mode?: 'add' | 'replace';
+  }): Promise<{ imported: number; duplicates: number }> {
+    const formData = new FormData();
+    
+    if (options.collection) {
+      formData.append('collection', options.collection.toString());
+    }
+    
+    formData.append('format', options.format);
+    formData.append('file', options.file);
+    
+    if (options.mode) {
+      formData.append('mode', options.mode);
+    }
+    
+    const { data } = await this.api.post('/import', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    return {
+      imported: data.imported || 0,
+      duplicates: data.duplicates || 0
+    };
+  }
+
+  // Check import status
+  async getImportStatus(): Promise<{
+    status: 'in-progress' | 'ready' | 'error';
+    progress?: number;
+    imported?: number;
+    duplicates?: number;
+    error?: string;
+  }> {
+    const { data } = await this.api.get('/import/status');
+    return {
+      status: data.status,
+      progress: data.progress,
+      imported: data.imported,
+      duplicates: data.duplicates,
+      error: data.error
+    };
+  }
+
+  // Export functionality
+  async exportBookmarks(options: {
+    collection?: number;
+    format: 'csv' | 'html' | 'pdf';
+    broken?: boolean;
+    duplicates?: boolean;
+  }): Promise<{ url: string }> {
+    const { data } = await this.api.post('/export', options);
+    
+    return {
+      url: data.url
+    };
+  }
+
+  // Check export status
+  async getExportStatus(): Promise<{
+    status: 'in-progress' | 'ready' | 'error';
+    progress?: number;
+    url?: string;
+    error?: string;
+  }> {
+    const { data } = await this.api.get('/export/status');
+    
+    return {
+      status: data.status,
+      progress: data.progress,
+      url: data.url,
+      error: data.error
+    };
   }
 }
 
