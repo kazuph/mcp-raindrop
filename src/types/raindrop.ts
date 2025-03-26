@@ -1,8 +1,9 @@
 // Define types for Raindrop.io API
 
+// https://developer.raindrop.io/v1/collections
 export interface Collection {
   _id: number;
-  name: string;
+  title: string;
   count?: number;
   view?: string;
   public?: boolean;
@@ -11,6 +12,7 @@ export interface Collection {
   lastUpdate?: string;
 }
 
+// https://developer.raindrop.io/v1/raindrops/single
 export interface Bookmark {
   _id: number;
   title: string;
@@ -27,15 +29,17 @@ export interface Bookmark {
   important?: boolean;
   media?: string;
 }
-
+// https://developer.raindrop.io/v1/highlights
 export interface Highlight {
   _id: number;
   raindrop?: { $id: number };
+  title: string;
   text: string;
   note?: string;
   color?: string;
   created: string;
   lastUpdate: string;
+  link: string;
 }
 
 export interface SearchParams {
@@ -52,6 +56,7 @@ export interface SearchParams {
   createdEnd?: string;
 }
 
+// https://developer.raindrop.io/v1/raindrops/multiple
 export interface BookmarkResult {
   items: Bookmark[];
   count: number;

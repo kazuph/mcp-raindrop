@@ -15,8 +15,8 @@ export const raindropController = {
 
   async createCollection(req: Request, res: Response) {
     try {
-      const { name, isPublic } = req.body as { name: string; isPublic?: boolean };
-      const collection = await raindropService.createCollection(name, isPublic);
+      const { title, isPublic } = req.body as { title: string; isPublic?: boolean };
+      const collection = await raindropService.createCollection(title, isPublic);
       res.status(201).json({ collection });
     } catch (error) {
       res.status(500).json({ error: 'Failed to create collection' });

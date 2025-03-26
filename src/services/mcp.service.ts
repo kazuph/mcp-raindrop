@@ -22,7 +22,7 @@ export class RaindropMCPService {
     // Tool for listing collections
     this.server.tool(
       "getCollections",
-      "Retrieve all collections from Raindrop.io",
+      "Retrieve all collections (folders) from Raindrop.io. Collections are containers for bookmarks and can be nested. Returns collection titles, IDs, and bookmark counts.",
       async () => {
         const collections = await raindropService.getCollections();
         return {
@@ -40,16 +40,17 @@ export class RaindropMCPService {
     // Tool for creating a collection
     this.server.tool(
       "createCollection",
+      "Create a new collection (folder) in your Raindrop.io account. Collections are used to organize bookmarks by topic, project, or any custom categorization.",
       {
-        name: z.string().describe("Name of the collection"),
-        isPublic: z.boolean().optional().describe("Whether the collection is public")
+        title: z.string().describe("Title of the new collection/folder to create in Raindrop.io"),
+        isPublic: z.boolean().optional().describe("Whether the collection is public (true) or private (false). Default is private.")
       },
-      async ({ name, isPublic }) => {
-        const collection = await raindropService.createCollection(name, isPublic);
+      async ({ title, isPublic }) => {
+        const collection = await raindropService.createCollection(title, isPublic);
         return {
           content: [{
             type: "text",
-            text: `Collection created: ${collection.name}`
+            text: `Collection created: ${collection.title}`
           }]
         };
       }
@@ -58,10 +59,11 @@ export class RaindropMCPService {
     // Tool for retrieving bookmarks
     this.server.tool(
       "getBookmarks",
+      "Retrieve bookmarks from Raindrop.io with powerful filtering options. Search across all bookmarks or within specific collections, filter by tags, and perform full-text searches of bookmark content.",
       {
-        collectionId: z.number().optional().describe("ID of the collection to filter bookmarks"),
-        search: z.string().optional().describe("Search query for filtering bookmarks"),
-        tags: z.array(z.string()).optional().describe("Tags to filter bookmarks")
+        collectionId: z.number().optional().describe("ID of the specific collection to retrieve bookmarks from. Use 0 for unsorted bookmarks. Omit to search across all collections."),
+        search: z.string().optional().describe("Full-text search query for filtering bookmarks by title, description, or content. Supports advanced search operators like '-' for exclusion."),
+        tags: z.array(z.string()).optional().describe("Array of tags to filter bookmarks. Only bookmarks with ALL specified tags will be returned.")
       },
       async (params) => {
         const filters: Record<string, any> = {};
@@ -93,8 +95,9 @@ export class RaindropMCPService {
     // Tool for retrieving tags
     this.server.tool(
       "getTags",
+      "Retrieve all tags used within a specific collection or across all collections. Returns tag names and their usage counts.",
       {
-        collectionId: z.number().optional().describe("ID of the collection to filter tags")
+        collectionId: z.number().optional().describe("ID of the collection to filter tags by. Use 0 for unsorted bookmarks' tags. Omit to get tags across all collections.")
       },
       async ({ collectionId }) => {
         const tags = await raindropService.getTags(collectionId);
@@ -111,10 +114,11 @@ export class RaindropMCPService {
     // Tool for renaming a tag
     this.server.tool(
       "renameTag",
+      "Rename a tag across all bookmarks in a specific collection or globally. The old tag will be replaced with the new tag name.",
       {
-        collectionId: z.number().optional().describe("ID of the collection to restrict renaming"),
-        oldName: z.string().describe("Current name of the tag"),
-        newName: z.string().describe("New name for the tag")
+        collectionId: z.number().optional().describe("ID of the collection to restrict renaming. Omit to rename tags across all collections."),
+        oldName: z.string().describe("Current name of the tag to be renamed"),
+        newName: z.string().describe("New name for the tag. Must be a unique tag name.")
       },
       async ({ collectionId, oldName, newName }) => {
         await raindropService.renameTag(collectionId, oldName, newName);
@@ -130,10 +134,11 @@ export class RaindropMCPService {
     // Tool for merging tags
     this.server.tool(
       "mergeTags",
+      "Merge multiple source tags into a single target tag. All bookmarks with any of the source tags will be updated to use the target tag instead.",
       {
-        collectionId: z.number().optional().describe("ID of the collection to restrict merging"),
-        tags: z.array(z.string()).describe("List of tags to merge"),
-        newName: z.string().describe("New name for the merged tags")
+        collectionId: z.number().optional().describe("ID of the collection to restrict merging. Omit to merge tags across all collections."),
+        tags: z.array(z.string()).describe("List of source tags to merge into the new tag. These tags will be removed."),
+        newName: z.string().describe("Target tag name. All bookmarks with source tags will now have this tag.")
       },
       async ({ collectionId, tags, newName }) => {
         await raindropService.mergeTags(collectionId, tags, newName);
@@ -149,9 +154,10 @@ export class RaindropMCPService {
     // Tool for deleting tags
     this.server.tool(
       "deleteTags",
+      "Remove specified tags from all bookmarks in a collection or globally. This permanently removes the tags without deleting the bookmarks.",
       {
-        collectionId: z.number().optional().describe("ID of the collection to restrict deletion"),
-        tags: z.array(z.string()).describe("List of tags to delete")
+        collectionId: z.number().optional().describe("ID of the collection to restrict deletion. Omit to delete tags across all collections."),
+        tags: z.array(z.string()).describe("List of tags to completely remove from bookmarks")
       },
       async ({ collectionId, tags }) => {
         await raindropService.deleteTags(collectionId, tags);
@@ -167,7 +173,7 @@ export class RaindropMCPService {
     // Tool for retrieving all tags across all collections
     this.server.tool(
       "getAllTags",
-      "Retrieve all tags across all collections",
+      "Retrieve all tags across all collections in your Raindrop.io account. Returns tag names and usage counts for organizing and filtering bookmarks.",
       async () => {
         const tags = await raindropService.getTags();
         return {
@@ -183,7 +189,7 @@ export class RaindropMCPService {
     // Tool for retrieving all highlights across all raindrops
     this.server.tool(
       "getAllHighlights",
-      "Retrieve all highlights across all raindrops",
+      "Retrieve all text highlights you've created across all your bookmarks in Raindrop.io. Returns highlighted text, color, notes, and timestamps.",
       async () => {
         const highlights = await raindropService.getAllHighlights();
         return {
@@ -202,8 +208,9 @@ export class RaindropMCPService {
     // Tool for retrieving highlights
     this.server.tool(
       "getHighlights",
+      "Retrieve all text highlights for a specific bookmark. Returns highlighted text, color coding, notes, and timestamps.",
       {
-        raindropId: z.number().describe("ID of the raindrop to retrieve highlights for")
+        raindropId: z.number().describe("ID of the specific bookmark to retrieve text highlights from")
       },
       async ({ raindropId }) => {
         const highlights = await raindropService.getHighlights(raindropId);
@@ -223,8 +230,9 @@ export class RaindropMCPService {
     // Tool for reordering collections
     this.server.tool(
       "reorderCollections",
+      "Change how collections are sorted in the Raindrop.io interface. Sort by name alphabetically or by the number of bookmarks they contain.",
       {
-        sort: z.enum(["title", "-title", "-count"]).describe("Sort order: 'title', '-title', or '-count'")
+        sort: z.enum(["title", "-title", "-count"]).describe("Sort order: 'title' for alphabetical, '-title' for reverse alphabetical, or '-count' to sort by number of bookmarks (highest first)")
       },
       async ({ sort }) => {
         await raindropService.reorderCollections(sort);
@@ -240,8 +248,9 @@ export class RaindropMCPService {
     // Tool for expanding/collapsing all collections
     this.server.tool(
       "toggleCollectionsExpansion",
+      "Expand or collapse all collections in the Raindrop.io interface. Useful for getting an overview or focusing on specific collections.",
       {
-        expand: z.boolean().describe("True to expand all collections, false to collapse")
+        expand: z.boolean().describe("True to expand all collections in the UI, false to collapse them all. Affects the user's display preferences.")
       },
       async ({ expand }) => {
         await raindropService.toggleCollectionsExpansion(expand);
@@ -257,9 +266,10 @@ export class RaindropMCPService {
     // Tool for merging collections
     this.server.tool(
       "mergeCollections",
+      "Combine multiple collections into a single target collection. All bookmarks from source collections will be moved to the target collection.",
       {
-        targetCollectionId: z.number().describe("ID of the target collection"),
-        collectionIds: z.array(z.number()).describe("List of collection IDs to merge")
+        targetCollectionId: z.number().describe("ID of the destination collection that will receive all bookmarks"),
+        collectionIds: z.array(z.number()).describe("List of source collection IDs to merge. These collections will be deleted after merging.")
       },
       async ({ targetCollectionId, collectionIds }) => {
         await raindropService.mergeCollections(targetCollectionId, collectionIds);
@@ -275,7 +285,7 @@ export class RaindropMCPService {
     // Tool for removing empty collections
     this.server.tool(
       "removeEmptyCollections",
-      "Remove all empty collections",
+      "Remove all collections that contain zero bookmarks. Helps clean up and organize your Raindrop.io account.",
       async () => {
         const result = await raindropService.removeEmptyCollections();
         return {
@@ -290,13 +300,54 @@ export class RaindropMCPService {
     // Tool for emptying the trash
     this.server.tool(
       "emptyTrash",
-      "Empty the trash collection",
+      "Permanently delete all bookmarks currently in the trash. This action cannot be undone.",
       async () => {
         await raindropService.emptyTrash();
         return {
           content: [{
             type: "text",
             text: "Trash emptied successfully"
+          }]
+        };
+      }
+    );
+
+    // Tool for uploading a file and creating a bookmark
+    this.server.tool(
+      "uploadFile",
+      "Upload a file to Raindrop.io and create a bookmark for it in a specified collection. Supports files up to 10MB.",
+      {
+        collectionId: z.string().describe("ID of the collection where the file bookmark should be saved"),
+        file: z.any().describe("File to upload and bookmark in Raindrop.io. Maximum size: 10MB.")
+      },
+      async ({ collectionId, file }) => {
+        const uploadedBookmark = await raindropService.uploadFile(collectionId, file);
+        return {
+          content: [{
+            type: "text",
+            text: `File uploaded and bookmarked as: ${uploadedBookmark.title || "Untitled file"}`
+          }]
+        };
+      }
+    );
+
+    // Tool for setting a reminder on a bookmark
+    this.server.tool(
+      "setReminder",
+      "Add a reminder to a bookmark that will notify you at a specified date and time. Optionally include a note with the reminder.",
+      {
+        raindropId: z.number().describe("ID of the bookmark to set a reminder for"),
+        reminder: z.object({
+          date: z.string().describe("Reminder date and time in ISO format (e.g. '2023-12-31T23:59:59Z')"),
+          note: z.string().optional().describe("Optional note to attach to the reminder")
+        }).describe("Reminder details including when to remind and optional note")
+      },
+      async ({ raindropId, reminder }) => {
+        const updatedBookmark = await raindropService.setReminder(raindropId, reminder);
+        return {
+          content: [{
+            type: "text",
+            text: `Reminder set for "${updatedBookmark.title}" on ${reminder.date}${reminder.note ? ` with note: ${reminder.note}` : ''}`
           }]
         };
       }

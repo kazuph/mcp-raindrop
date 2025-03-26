@@ -3,7 +3,7 @@ import config from '../config/config';
 
 export interface Collection {
   _id: number;
-  name: string;
+  title: string; // Changed from name to title to match API documentation
   count: number;
   public: boolean;
   view: string;
@@ -56,9 +56,9 @@ class RaindropService {
     return data.items;
   }
 
-  async createCollection(name: string, isPublic = false): Promise<Collection> {
+  async createCollection(title: string, isPublic = false): Promise<Collection> {
     const { data } = await this.api.post('/collection', {
-      name,
+      title,
       public: isPublic,
     });
     return data.item;
@@ -75,7 +75,25 @@ class RaindropService {
 
   // Bookmarks
   async getBookmarks(params: SearchParams = {}): Promise<{ items: Bookmark[]; count: number }> {
-    const { data } = await this.api.get('/raindrops', { params });
+    // Convert parameters to the format expected by the Raindrop.io API
+    const queryParams: Record<string, any> = { ...params };
+
+    // Handle special cases for search parameter
+    if (params.search) {
+      // Ensure search parameter is properly encoded
+      queryParams.search = encodeURIComponent(params.search);
+    }
+
+    // Handle collection parameter
+    if (params.collection === undefined && !params.search) {
+      // Use the default collection endpoint if no specific collection or search
+      const { data } = await this.api.get('/raindrops/0', { params: queryParams });
+      return data;
+    }
+    
+    // For specific collection or search
+    const endpoint = params.collection !== undefined ? `/raindrops/${params.collection}` : '/raindrops/0';
+    const { data } = await this.api.get(endpoint, { params: queryParams });
     return data;
   }
 
