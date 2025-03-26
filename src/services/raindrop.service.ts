@@ -33,6 +33,11 @@ class RaindropService {
     return data.items;
   }
 
+  async getCollection(id: number): Promise<Collection> {
+    const { data } = await this.api.get(`/collection/${id}`);
+    return data.item;
+  }
+
   async createCollection(title: string, isPublic = false): Promise<Collection> {
     const { data } = await this.api.post('/collection', {
       title,
@@ -155,25 +160,28 @@ class RaindropService {
 
   // Highlights
   async getHighlights(raindropId: number): Promise<{ text: string; note?: string; color?: string; created: string; lastUpdate: string }[]> {
-    const { data } = await this.api.get(`/raindrop/${raindropId}`);
-    if (!data || !data.item || !data.item.highlights) {
+    const { data } = await this.api.get(`/highlights/${raindropId}`);
+    if (!data || !data.items) {
       throw new Error('Invalid response structure from Raindrop.io API');
     }
-    return data.item.highlights;
+    return data.items;
   }
 
   async createHighlight(raindropId: number, highlightData: { text: string; note?: string; color?: string }): Promise<any> {
-    const { data } = await this.api.post(`/raindrop/${raindropId}/highlight`, highlightData);
+    const { data } = await this.api.post('/highlights', {
+      ...highlightData,
+      raindrop: { $id: raindropId }
+    });
     return data.item;
   }
 
   async updateHighlight(id: number, updates: { text?: string; note?: string; color?: string }): Promise<any> {
-    const { data } = await this.api.put(`/highlight/${id}`, updates);
+    const { data } = await this.api.put(`/highlights/${id}`, updates);
     return data.item;
   }
 
   async deleteHighlight(id: number): Promise<void> {
-    await this.api.delete(`/highlight/${id}`);
+    await this.api.delete(`/highlights/${id}`);
   }
 
   async getAllHighlights(): Promise<{ text: string; note?: string; color?: string; created: string; lastUpdate: string }[]> {

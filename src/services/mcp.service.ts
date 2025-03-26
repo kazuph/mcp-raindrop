@@ -23,6 +23,31 @@ export class RaindropMCPService {
   }
 
   private setupHandlers() {
+    // Tool for getting a single collection by ID
+    this.server.tool(
+      "getCollection",
+      "Retrieve a single collection by its ID. Returns collection details including title, ID, bookmark count, and metadata.",
+      {
+        id: z.number().describe("ID of the collection to retrieve")
+      },
+      async ({ id }) => {
+        const collection: Collection = await raindropService.getCollection(id);
+        return {
+          content: [{
+            type: "text",
+            text: collection.title || "Unnamed Collection",
+            metadata: {
+              id: collection._id,
+              count: collection.count,
+              public: collection.public,
+              created: collection.created,
+              ...(collection.lastUpdate && { lastUpdate: collection.lastUpdate })
+            }
+          }]
+        };
+      }
+    );
+
     // Tool for listing collections
     this.server.tool(
       "getCollections",
