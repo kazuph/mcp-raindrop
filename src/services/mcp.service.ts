@@ -7,7 +7,7 @@ import config from "../config/config";
 import type { Collection, Bookmark, SearchParams } from "../types/raindrop.js";
 
 export class RaindropMCPService {
-  public readonly server: McpServer;
+  private server: McpServer;
 
   constructor() {
     this.server = new McpServer({
@@ -20,10 +20,6 @@ export class RaindropMCPService {
   }
 
   private setupHandlers() {
-    this.server.server.sendLoggingMessage({
-      level: "info",
-      data: "Setting up MCP handlers for Raindrop.io integration"
-    });
     // Tool for listing collections
     this.server.tool(
       "getCollections",
@@ -522,12 +518,19 @@ export class RaindropMCPService {
   }
 
   public async start() {
+    const transport = new StdioServerTransport(process.stdin, process.stdout);
+    await this.server.connect(transport);
+    
     this.server.server.sendLoggingMessage({
       level: "info",
       data: "Starting Raindrop MCP server"
     });
-    const transport = new StdioServerTransport(process.stdin, process.stdout);
-    await this.server.connect(transport);
+
+    this.server.server.sendLoggingMessage({
+      level: "info",
+      data: "Setting up MCP handlers for Raindrop.io integration"
+    });
+
     this.server.server.sendLoggingMessage({
       level: "info",
       data: "Raindrop MCP server started successfully"

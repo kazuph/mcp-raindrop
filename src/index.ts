@@ -8,10 +8,10 @@ async function main() {
     // Start MCP SSE server
     await mcpSSEService.start();
   } catch (error) {
-    mcpService.server.server.sendLoggingMessage({
-      level: "error",
-      data: `Failed to start services: ${error}`
-    });
+    // mcpService.server.server.sendLoggingMessage({
+    //   level: "error",
+    //   data: `Failed to start services: ${error}`
+    // });
     process.exit(1);
   }
 }

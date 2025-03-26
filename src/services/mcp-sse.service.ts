@@ -16,10 +16,10 @@ export class MCPSSEService {
       description: 'MCP SSE Server for Raindrop.io bookmarking service'
     });
 
-    this.mcpServer.server.sendLoggingMessage({
-      level: "info",
-      data: "Setting up MCP SSE handlers for Raindrop.io streaming"
-    });
+    // this.mcpServer.server.sendLoggingMessage({
+    //   level: "info",
+    //   data: "Setting up MCP SSE handlers for Raindrop.io streaming"
+    // });
 
     // Define the SSE function for streaming Raindrop data
     this.mcpServer.tool(
@@ -121,30 +121,28 @@ export class MCPSSEService {
 
   public async start(): Promise<void> {
     try {
-      this.mcpServer.server.sendLoggingMessage({
-        level: "info",
-        data: "Starting Raindrop MCP SSE server"
-      });
       const transport = new StdioServerTransport(process.stdin, process.stdout);
       await this.mcpServer.connect(transport);
-      this.mcpServer.server.sendLoggingMessage({
-        level: "info",
-        data: "Raindrop MCP SSE server started successfully"
-      });
+      
+      // this.mcpServer.server.sendLoggingMessage({
+      //   level: "info",
+      //   data: "Starting Raindrop MCP SSE server"
+      // });
+      
+      // this.mcpServer.server.sendLoggingMessage({
+      //   level: "info",
+      //   data: "Raindrop MCP SSE server started successfully"
+      // });
     } catch (error) {
-      this.mcpServer.server.sendLoggingMessage({
-        level: "error",
-        data: `Failed to start MCP SSE server: ${error}`
-      });
       throw error;
     }
   }
 
   public async stop(): Promise<void> {
-    this.mcpServer.server.sendLoggingMessage({
-      level: "info",
-      data: "Stopping Raindrop MCP SSE server"
-    });
+    // this.mcpServer.server.sendLoggingMessage({
+    //   level: "info",
+    //   data: "Stopping Raindrop MCP SSE server"
+    // });
     // Nothing needed here as the StdioServerTransport handles cleanup
   }
 }
