@@ -2,29 +2,7 @@ import axios, { Axios, AxiosError } from 'axios';
 import config from '../config/config';
 
 // Import shared types
-import type { Collection as BaseCollection, Bookmark as BaseBookmark, SearchParams } from '../types/raindrop.js';
-
-// Extend the base Collection type with service-specific fields
-export interface Collection extends BaseCollection {
-  creatorRef?: {
-    _id: number;
-    name: string;
-  };
-}
-
-export interface Bookmark extends BaseBookmark {}
-
-export interface Highlight {
-  _id: number;
-  text: string;
-  note?: string;
-  color?: string;
-  created: string;
-  lastUpdate: string;
-  raindrop: {
-    _id: number;
-  };
-}
+import type { Collection, Bookmark, Highlight, SearchParams } from '../types/raindrop.js';
 
 class RaindropService {
   private api: Axios;

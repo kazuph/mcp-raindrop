@@ -19,6 +19,10 @@ export interface Collection {
   user?: { $id: number };
   created: string;  // Changed to non-optional as it's always present in API responses
   lastUpdate?: string;  // Matches Raindrop.io API field name
+  creatorRef?: {
+    _id: number;
+    name: string;
+  };
 }
 
 // https://developer.raindrop.io/v1/raindrops/single
