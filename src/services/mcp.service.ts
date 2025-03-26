@@ -302,6 +302,30 @@ export class RaindropMCPService {
       }
     );
 
+    // Tool for getting highlights by collection
+    this.server.tool(
+      "getHighlightsByCollection",
+      "Retrieve all text highlights from bookmarks in a specific collection. Returns highlighted text, color coding, notes, and timestamps.",
+      {
+        collectionId: z.number().describe("ID of the collection to retrieve highlights from")
+      },
+      async ({ collectionId }) => {
+        const highlights = await raindropService.getHighlightsByCollection(collectionId);
+        return {
+          content: highlights.map(highlight => ({
+            type: "text",
+            text: highlight.text,
+            metadata: {
+              color: highlight.color,
+              note: highlight.note,
+              created: highlight.created,
+              lastUpdate: highlight.lastUpdate
+            }
+          }))
+        };
+      }
+    );
+
     // Tool for reordering collections
     this.server.tool(
       "reorderCollections",

@@ -1,4 +1,4 @@
-import axios, { Axios } from 'axios';
+import axios, { Axios, AxiosError } from 'axios';
 import config from '../config/config';
 
 // Import shared types
@@ -13,6 +13,18 @@ export interface Collection extends BaseCollection {
 }
 
 export interface Bookmark extends BaseBookmark {}
+
+export interface Highlight {
+  _id: number;
+  text: string;
+  note?: string;
+  color?: string;
+  created: string;
+  lastUpdate: string;
+  raindrop: {
+    _id: number;
+  };
+}
 
 class RaindropService {
   private api: Axios;
@@ -159,15 +171,90 @@ class RaindropService {
   }
 
   // Highlights
-  async getHighlights(raindropId: number): Promise<{ text: string; note?: string; color?: string; created: string; lastUpdate: string }[]> {
-    const { data } = await this.api.get(`/highlights/${raindropId}`);
-    if (!data || !data.items) {
-      throw new Error('Invalid response structure from Raindrop.io API');
+  async getHighlights(raindropId: number): Promise<Highlight[]> {
+    try {
+      const { data } = await this.api.get(`/highlights/${raindropId}`);
+      if (!data || !data.items) {
+        throw new Error('Invalid response structure from Raindrop.io API');
+      }
+      return data.items.map((item: any) => ({
+        _id: item._id,
+        text: item.text,
+        note: item.note,
+        color: item.color,
+        created: item.created,
+        lastUpdate: item.lastUpdate,
+        raindrop: {
+          _id: item.raindrop?._id || raindropId // Ensure raindropId is always included
+        }
+      }));
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 404) {
+        return []; // Return empty array if no highlights found
+      }
+      throw new Error(`Failed to get highlights for raindrop ${raindropId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-    return data.items;
   }
 
-  async createHighlight(raindropId: number, highlightData: { text: string; note?: string; color?: string }): Promise<any> {
+  async getHighlightsByCollection(collectionId: number): Promise<Highlight[]> {
+    try {
+      // Verify collection exists first
+      const collection = await this.getCollection(collectionId);
+      if (!collection) {
+        throw new Error(`Collection ${collectionId} not found`);
+      }
+
+      // Get all bookmark IDs from the collection
+      const { items: raindrops } = await this.getBookmarks({ 
+        collection: collectionId,
+        perPage: 50 // Maximum allowed per page
+      });
+
+      if (!raindrops?.length) {
+        return [];
+      }
+
+      // Get all raindrop IDs
+      const raindropIds = raindrops.map(raindrop => raindrop._id);
+
+      // Use the /raindrops/multiple endpoint to get highlights
+      const { data } = await this.api.post('/raindrops/multiple', {
+        ids: raindropIds
+      });
+
+      if (!data?.items) {
+        throw new Error('Invalid response structure from Raindrop.io API');
+      }
+
+      // Extract and format highlights from the response
+      const allHighlights: Highlight[] = [];
+      for (const raindrop of data.items) {
+        if (raindrop.highlights?.length) {
+          const highlights = raindrop.highlights.map((highlight: any) => ({
+            _id: highlight._id,
+            text: highlight.text,
+            note: highlight.note,
+            color: highlight.color,
+            created: highlight.created,
+            lastUpdate: highlight.lastUpdate,
+            raindrop: {
+              _id: raindrop._id
+            }
+          }));
+          allHighlights.push(...highlights);
+        }
+      }
+
+      return allHighlights;
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 404) {
+        throw new Error(`Collection ${collectionId} not found`);
+      }
+      throw new Error(`Failed to get highlights for collection ${collectionId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async createHighlight(raindropId: number, highlightData: { text: string; note?: string; color?: string }): Promise<Highlight> {
     const { data } = await this.api.post('/highlights', {
       ...highlightData,
       raindrop: { $id: raindropId }
@@ -175,7 +262,7 @@ class RaindropService {
     return data.item;
   }
 
-  async updateHighlight(id: number, updates: { text?: string; note?: string; color?: string }): Promise<any> {
+  async updateHighlight(id: number, updates: { text?: string; note?: string; color?: string }): Promise<Highlight> {
     const { data } = await this.api.put(`/highlights/${id}`, updates);
     return data.item;
   }
@@ -184,18 +271,35 @@ class RaindropService {
     await this.api.delete(`/highlights/${id}`);
   }
 
-  async getAllHighlights(): Promise<{ text: string; note?: string; color?: string; created: string; lastUpdate: string }[]> {
-    const { data } = await this.api.get('/highlights');
-    if (!data || !data.items) {
-      throw new Error('Invalid response structure from Raindrop.io API');
+  async getAllHighlights(): Promise<Highlight[]> {
+    try {
+      const { data } = await this.api.get('/highlights');
+      if (!data || !data.items) {
+        throw new Error('Invalid response structure from Raindrop.io API');
+      }
+      // Ensure each highlight has the required fields
+      return data.items.map((item: any) => {
+        if (!item || !item.raindrop?._id) {
+          throw new Error('Invalid highlight structure: missing raindrop ID');
+        }
+        return {
+          _id: item._id,
+          text: item.text || '',
+          note: item.note,
+          color: item.color,
+          created: item.created,
+          lastUpdate: item.lastUpdate,
+          raindrop: {
+            _id: item.raindrop._id
+          }
+        };
+      });
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 404) {
+        return []; // Return empty array if no highlights found
+      }
+      throw error;
     }
-    return data.items.map((highlight: any) => ({
-      text: highlight.text,
-      note: highlight.note,
-      color: highlight.color,
-      created: highlight.created,
-      lastUpdate: highlight.lastUpdate
-    }));
   }
 
   // Advanced search with filters
