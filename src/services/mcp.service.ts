@@ -13,7 +13,10 @@ export class RaindropMCPService {
     this.server = new McpServer({
       name: 'raindrop-mcp',
       version: '1.0.0',
-      description: 'MCP Server for Raindrop.io bookmarking service'
+      description: 'MCP Server for Raindrop.io bookmarking service',
+      capabilities: {
+        logging: true
+      }
     });
 
     this.setupHandlers();
@@ -521,27 +524,25 @@ export class RaindropMCPService {
     const transport = new StdioServerTransport(process.stdin, process.stdout);
     await this.server.connect(transport);
     
-    this.server.server.sendLoggingMessage({
-      level: "info",
-      data: "Starting Raindrop MCP server"
-    });
-
-    this.server.server.sendLoggingMessage({
-      level: "info",
-      data: "Setting up MCP handlers for Raindrop.io integration"
-    });
-
-    this.server.server.sendLoggingMessage({
-      level: "info",
-      data: "Raindrop MCP server started successfully"
-    });
+    // this.server.server.sendLoggingMessage({
+    //   level: "info",
+    //   data: "Starting Raindrop MCP server"
+    // });
+    // this.server.server.sendLoggingMessage({
+    //   level: "info",
+    //   data: "Setting up MCP handlers for Raindrop.io integration"
+    // });
+    // this.server.server.sendLoggingMessage({
+    //   level: "info",
+    //   data: "Raindrop MCP server started successfully"
+    // });
   }
 
   public async stop() {
-    this.server.server.sendLoggingMessage({
-      level: "info",
-      data: "Stopping Raindrop MCP server"
-    });
+    // this.server.server.sendLoggingMessage({
+    //   level: "info",
+    //   data: "Stopping Raindrop MCP server"
+    // });
   }
 }
 
