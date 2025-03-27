@@ -171,7 +171,7 @@ export class RaindropMCPService {
           }
         }
       },
-      async (resourceName) => {
+      async (resourceName: string) => {
         // Example readCallback implementation
         return `Resource ${resourceName} is ready.`;
       }
@@ -389,7 +389,7 @@ export class RaindropMCPService {
         }
       }
     },
-    async (resourceName) => {
+    async (resourceName: string) => {
       // Example readCallback implementation
       return `Resource ${resourceName} is ready.`;
     });
@@ -422,7 +422,7 @@ export class RaindropMCPService {
         }
       }
     },
-    async (resourceName) => {
+    async (resourceName:string) => {
       // Example readCallback implementation
       return `Resource ${resourceName} is ready.`;
     });
@@ -501,7 +501,7 @@ export class RaindropMCPService {
         }
       }
     },
-    async (resourceName) => {
+    async (resourceName:string) => {
       // Example readCallback implementation
       return `Resource ${resourceName} is ready.`;
     });

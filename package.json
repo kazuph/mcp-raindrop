@@ -4,13 +4,11 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "bun run": "bun run src/index.ts",
         "watch": "bun --watch run src/index.ts",
         "inspector": "npx @modelcontextprotocol/inspector bun run src/index.ts",
         "type-check": "tsc --noEmit",
         "test": "node --loader vitest/vitest.mjs",
         "test:coverage": "node --loader vitest/vitest.mjs run --coverage",
-        "build": "bun build src/index.ts --outfile build/index.js && chmod +x build/index.js",
         "node run": "node -r dotenv/config build/index.js"
     },
     "dependencies": {

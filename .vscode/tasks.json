@@ -4,32 +4,40 @@
 		{
 			"type": "bun",
 			"script": "start",
-			"problemMatcher": [],
+			"problemMatcher": ["$tsc"],
 			"label": "bun run src/index.ts",
-			"detail": "bun run src/index.ts",
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
-		},
-		{
-			"type": "bun",
-			"script": "start",
-			"problemMatcher": [],
-			"label": "bun run src/index.ts",
-			"detail": "bun run src/index.ts",
-			"group": "build"
-		},
-		{
-			"type": "npm",
-			"script": "build",
+			"detail": "Runs the Bun start script for src/index.ts",
 			"group": {
 				"kind": "build",
 				"isDefault": true
 			},
-			"problemMatcher": [],
-			"label": "npm: build",
-			"detail": "bun build src/index.ts --outfile build/index.js && chmod +x build/index.js"
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"type": "shell",
+			"label": "bun: build",
+			"detail": "Builds the project using Bun and outputs to build/index.js",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+				"command": "bun",
+			"args": [
+				"build",
+				"src/index.ts",
+				"--outfile=build/index.js"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": ["$tsc"],
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
 		}
 	]
 }
