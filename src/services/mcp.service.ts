@@ -23,164 +23,278 @@ export class RaindropMCPService {
   }
 
   private setupHandlers() {
-    // Tool for getting a single collection by ID
-    this.server.tool(
-      "getCollection",
-      "Retrieve a single collection by its ID. Returns collection details including title, ID, bookmark count, and metadata.",
+    // Register collection resources
+    this.setupCollectionResources();
+    
+    // Register bookmark resources
+    this.setupBookmarkResources();
+    
+    // Register tag resources
+    this.setupTagResources();
+    
+    // Register highlight resources
+    this.setupHighlightResources();
+    
+    // Register operational tools
+    this.setupOperationalTools();
+  }
+  
+  private setupCollectionResources() {
+    // Resource for accessing collections
+    this.server.resource(
+      "collections",
+      "Access and manage Raindrop.io collections (folders). Collections are containers for bookmarks and can be nested.",
       {
-        id: z.number().describe("ID of the collection to retrieve")
-      },
-      async ({ id }) => {
-        const collection: Collection = await raindropService.getCollection(id);
-        return {
-          content: [{
-            type: "text",
-            text: collection.title || "Unnamed Collection",
-            metadata: {
-              id: collection._id,
-              count: collection.count,
-              public: collection.public,
-              created: collection.created,
-              ...(collection.lastUpdate && { lastUpdate: collection.lastUpdate })
-            }
-          }]
-        };
+        // List collections
+        list: {
+          description: "Retrieve all collections (folders) from Raindrop.io. Returns collection titles, IDs, and bookmark counts.",
+          handler: async () => {
+            const collections: Collection[] = await raindropService.getCollections();
+            return {
+              content: collections.map((collection: Collection) => ({
+                type: "text",
+                text: collection.title || "Unnamed Collection",
+                metadata: {
+                  id: collection._id,
+                  count: collection.count,
+                  public: collection.public,
+                  created: collection.created,
+                  ...(collection.lastUpdate && { lastUpdate: collection.lastUpdate })
+                }
+              }))
+            };
+          }
+        },
+        
+        // Get a single collection
+        get: {
+          description: "Retrieve a single collection by its ID. Returns collection details including title, ID, bookmark count, and metadata.",
+          parameters: {
+            id: z.number().describe("ID of the collection to retrieve")
+          },
+          handler: async ({ id }) => {
+            const collection: Collection = await raindropService.getCollection(id);
+            return {
+              content: [{
+                type: "text",
+                text: collection.title || "Unnamed Collection",
+                metadata: {
+                  id: collection._id,
+                  count: collection.count,
+                  public: collection.public,
+                  created: collection.created,
+                  ...(collection.lastUpdate && { lastUpdate: collection.lastUpdate })
+                }
+              }]
+            };
+          }
+        },
+        
+        // Create a collection
+        create: {
+          description: "Create a new collection (folder) in your Raindrop.io account.",
+          parameters: {
+            title: z.string().describe("Title of the new collection/folder to create in Raindrop.io"),
+            isPublic: z.boolean().optional().describe("Whether the collection is public (true) or private (false). Default is private.")
+          },
+          handler: async ({ title, isPublic }) => {
+            const collection: Collection = await raindropService.createCollection(title, isPublic);
+            return {
+              content: [{
+                type: "text",
+                text: collection.title || "Unnamed Collection",
+                metadata: {
+                  id: collection._id,
+                  public: collection.public,
+                  created: collection.created,
+                  ...(collection.lastUpdate && { lastUpdate: collection.lastUpdate })
+                }
+              }]
+            };
+          }
+        }
       }
     );
-
-    // Tool for listing collections
-    this.server.tool(
-      "getCollections",
-      "Retrieve all collections (folders) from Raindrop.io. Collections are containers for bookmarks and can be nested. Returns collection titles, IDs, and bookmark counts.",
-      async () => {
-        const collections: Collection[] = await raindropService.getCollections();
-        return {
-          content: collections.map((collection: Collection) => ({
-            type: "text",
-            text: collection.title || "Unnamed Collection",
-            metadata: {
-              id: collection._id,
-              count: collection.count,
-              public: collection.public,
-              created: collection.created,
-              ...(collection.lastUpdate && { lastUpdate: collection.lastUpdate })
-            }
-          }))
-        };
-      }
-    );
-
-    // Tool for creating a collection
-    this.server.tool(
-      "createCollection",
-      "Create a new collection (folder) in your Raindrop.io account. Collections are used to organize bookmarks by topic, project, or any custom categorization.",
+  }
+  
+  private setupBookmarkResources() {
+    // Resource for accessing bookmarks
+    this.server.resource(
+      "bookmarks",
+      "Access and manage bookmarks in Raindrop.io.",
       {
-        title: z.string().describe("Title of the new collection/folder to create in Raindrop.io"),
-        isPublic: z.boolean().optional().describe("Whether the collection is public (true) or private (false). Default is private.")
-      },
-      async ({ title, isPublic }) => {
-        const collection: Collection = await raindropService.createCollection(title, isPublic);
-        return {
-          content: [{
-            type: "text",
-            text: collection.title || "Unnamed Collection",
-            metadata: {
-              id: collection._id,
-              public: collection.public,
-              created: collection.created,
-              ...(collection.lastUpdate && { lastUpdate: collection.lastUpdate })
-            }
-          }]
-        };
+        // List bookmarks with filtering options
+        list: {
+          description: "Retrieve bookmarks from Raindrop.io with powerful filtering options.",
+          parameters: {
+            collectionId: z.number().optional().describe("ID of the specific collection to retrieve bookmarks from. Use 0 for unsorted bookmarks. Omit to search across all collections."),
+            search: z.string().optional().describe("Full-text search query for filtering bookmarks by title, description, or content. Supports advanced search operators like '-' for exclusion."),
+            tags: z.array(z.string()).optional().describe("Array of tags to filter bookmarks. Only bookmarks with ALL specified tags will be returned."),
+            page: z.number().optional().describe("Page number for pagination. Starts from 0."),
+            perPage: z.number().optional().describe("Number of bookmarks per page. Default is 50, max is 100."),
+            sort: z.enum(['title', '-title', 'domain', '-domain', 'created', '-created', 'lastUpdate', '-lastUpdate']).optional()
+              .describe("Sort order for results: prefix with '-' for descending order"),
+            important: z.boolean().optional().describe("Filter by important/favorited status"),
+            media: z.enum(['image', 'video', 'document', 'audio']).optional().describe("Filter by media type"),
+            annotated: z.boolean().optional().describe("Filter bookmarks with text highlights"),
+            type: z.enum(['link', 'article', 'image', 'video', 'document', 'audio']).optional().describe("Filter by bookmark type"),
+            createdStart: z.string().optional().describe("Filter by creation date, start (ISO format)"),
+            createdEnd: z.string().optional().describe("Filter by creation date, end (ISO format)"),
+            domain: z.string().optional().describe("Filter by specific domain name"),
+            broken: z.boolean().optional().describe("Filter for broken links only"),
+            duplicates: z.boolean().optional().describe("Filter for duplicated links only"),
+            notag: z.boolean().optional().describe("Filter for bookmarks without tags")
+          },
+          handler: async (params) => {
+            const filters: Record<string, any> = {};
+            if (params.collectionId) filters.collection = params.collectionId;
+            if (params.search) filters.search = params.search;
+            if (params.tags) filters.tag = params.tags;
+            if (params.page !== undefined) filters.page = params.page;
+            if (params.perPage !== undefined) filters.perPage = params.perPage;
+            if (params.sort) filters.sort = params.sort;
+            if (params.important !== undefined) filters.important = params.important;
+            if (params.media) filters.media = params.media;
+            if (params.annotated !== undefined) filters.annotated = params.annotated;
+            if (params.type) filters.type = params.type;
+            if (params.createdStart) filters.createdStart = params.createdStart;
+            if (params.createdEnd) filters.createdEnd = params.createdEnd;
+            if (params.domain) filters.domain = params.domain;
+            if (params.broken !== undefined) filters.broken = params.broken;
+            if (params.duplicates !== undefined) filters.duplicates = params.duplicates;
+            if (params.notag !== undefined) filters.notag = params.notag;
+
+            const bookmarks = await raindropService.getBookmarks(filters);
+            return {
+              content: bookmarks.items.map(bookmark => ({
+                type: "resource",
+                resource: {
+                  text: bookmark.title || "Untitled Bookmark",
+                  uri: bookmark.link,
+                  metadata: {
+                    id: bookmark._id,
+                    excerpt: bookmark.excerpt,
+                    tags: bookmark.tags,
+                    collectionId: bookmark.collection?.$id,
+                    created: bookmark.created,
+                    lastUpdate: bookmark.lastUpdate,
+                    type: bookmark.type
+                  }
+                }
+              }))
+            };
+          }
+        }
       }
     );
+  }
 
-    // Tool for retrieving bookmarks
-    this.server.tool(
-      "getBookmarks",
-      "Retrieve bookmarks from Raindrop.io with powerful filtering options. Search across all bookmarks or within specific collections, filter by tags, and perform full-text searches of bookmark content.",
+  private setupTagResources() {
+    // Resource for accessing tags
+    this.server.resource(
+      "tags",
+      "Access and manage tags in Raindrop.io.",
       {
-        collectionId: z.number().optional().describe("ID of the specific collection to retrieve bookmarks from. Use 0 for unsorted bookmarks. Omit to search across all collections."),
-        search: z.string().optional().describe("Full-text search query for filtering bookmarks by title, description, or content. Supports advanced search operators like '-' for exclusion."),
-        tags: z.array(z.string()).optional().describe("Array of tags to filter bookmarks. Only bookmarks with ALL specified tags will be returned."),
-        page: z.number().optional().describe("Page number for pagination. Starts from 0."),
-        perPage: z.number().optional().describe("Number of bookmarks per page. Default is 50, max is 100."),
-        sort: z.enum(['title', '-title', 'domain', '-domain', 'created', '-created', 'lastUpdate', '-lastUpdate']).optional()
-          .describe("Sort order for results: prefix with '-' for descending order"),
-        important: z.boolean().optional().describe("Filter by important/favorited status"),
-        media: z.enum(['image', 'video', 'document', 'audio']).optional().describe("Filter by media type"),
-        annotated: z.boolean().optional().describe("Filter bookmarks with text highlights"),
-        type: z.enum(['link', 'article', 'image', 'video', 'document', 'audio']).optional().describe("Filter by bookmark type"),
-        createdStart: z.string().optional().describe("Filter by creation date, start (ISO format)"),
-        createdEnd: z.string().optional().describe("Filter by creation date, end (ISO format)"),
-        domain: z.string().optional().describe("Filter by specific domain name"),
-        broken: z.boolean().optional().describe("Filter for broken links only"),
-        duplicates: z.boolean().optional().describe("Filter for duplicated links only"),
-        notag: z.boolean().optional().describe("Filter for bookmarks without tags")
-      },
-      async (params) => {
-        const filters: Record<string, any> = {};
-        if (params.collectionId) filters.collection = params.collectionId;
-        if (params.search) filters.search = params.search;
-        if (params.tags) filters.tag = params.tags;
-        if (params.page !== undefined) filters.page = params.page;
-        if (params.perPage !== undefined) filters.perPage = params.perPage;
-        if (params.sort) filters.sort = params.sort;
-        if (params.important !== undefined) filters.important = params.important;
-        if (params.media) filters.media = params.media;
-        if (params.annotated !== undefined) filters.annotated = params.annotated;
-        if (params.type) filters.type = params.type;
-        if (params.createdStart) filters.createdStart = params.createdStart;
-        if (params.createdEnd) filters.createdEnd = params.createdEnd;
-        if (params.domain) filters.domain = params.domain;
-        if (params.broken !== undefined) filters.broken = params.broken;
-        if (params.duplicates !== undefined) filters.duplicates = params.duplicates;
-        if (params.notag !== undefined) filters.notag = params.notag;
-
-        const bookmarks = await raindropService.getBookmarks(filters);
-        return {
-          content: bookmarks.items.map(bookmark => ({
-            type: "resource",
-            resource: {
-              text: bookmark.title || "Untitled Bookmark",
-              uri: bookmark.link,
-              metadata: {
-                id: bookmark._id,
-                excerpt: bookmark.excerpt,
-                tags: bookmark.tags,
-                collectionId: bookmark.collection?.$id,
-                created: bookmark.created,
-                lastUpdate: bookmark.lastUpdate,
-                type: bookmark.type
-              }
-            }
-          }))
-        };
+        // List all tags
+        list: {
+          description: "Retrieve all tags used within a specific collection or across all collections.",
+          parameters: {
+            collectionId: z.number().optional().describe("ID of the collection to filter tags by. Use 0 for unsorted bookmarks' tags. Omit to get tags across all collections.")
+          },
+          handler: async ({ collectionId }) => {
+            const tags = await raindropService.getTags(collectionId);
+            return {
+              content: tags.map(tag => ({
+                type: "text",
+                text: tag._id,
+                metadata: {
+                  count: tag.count
+                }
+              }))
+            };
+          }
+        }
       }
     );
+  }
 
-    // Tool for retrieving tags
-    this.server.tool(
-      "getTags",
-      "Retrieve all tags used within a specific collection or across all collections. Returns tag names and their usage counts.",
+  private setupHighlightResources() {
+    // Resource for accessing highlights
+    this.server.resource(
+      "highlights",
+      "Access and manage text highlights in Raindrop.io.",
       {
-        collectionId: z.number().optional().describe("ID of the collection to filter tags by. Use 0 for unsorted bookmarks' tags. Omit to get tags across all collections.")
-      },
-      async ({ collectionId }) => {
-        const tags = await raindropService.getTags(collectionId);
-        return {
-          content: tags.map(tag => ({
-            type: "text",
-            text: tag._id,
-            metadata: {
-              count: tag.count
-            }
-          }))
-        };
+        // List all highlights
+        list: {
+          description: "Retrieve all text highlights you've created across all your bookmarks in Raindrop.io.",
+          handler: async () => {
+            const highlights = await raindropService.getAllHighlights();
+            return {
+              content: highlights.map(highlight => ({
+                type: "text",
+                text: highlight.text,
+                metadata: {
+                  color: highlight.color,
+                  note: highlight.note,
+                  created: highlight.created,
+                  lastUpdate: highlight.lastUpdate
+                }
+              }))
+            };
+          }
+        },
+        
+        // Get highlights for a bookmark
+        get: {
+          description: "Retrieve all text highlights for a specific bookmark.",
+          parameters: {
+            raindropId: z.number().describe("ID of the specific bookmark to retrieve text highlights from")
+          },
+          handler: async ({ raindropId }) => {
+            const highlights = await raindropService.getHighlights(raindropId);
+            return {
+              content: highlights.map(highlight => ({
+                type: "text",
+                text: highlight.text,
+                metadata: {
+                  color: highlight.color,
+                  note: highlight.note,
+                  created: highlight.created,
+                  lastUpdate: highlight.lastUpdate
+                }
+              }))
+            };
+          }
+        },
+        
+        // Get highlights for a collection
+        getByCollection: {
+          description: "Retrieve all text highlights from bookmarks in a specific collection.",
+          parameters: {
+            collectionId: z.number().describe("ID of the collection to retrieve highlights from")
+          },
+          handler: async ({ collectionId }) => {
+            const highlights = await raindropService.getHighlightsByCollection(collectionId);
+            return {
+              content: highlights.map(highlight => ({
+                type: "text",
+                text: highlight.text,
+                metadata: {
+                  color: highlight.color,
+                  note: highlight.note,
+                  created: highlight.created,
+                  lastUpdate: highlight.lastUpdate
+                }
+              }))
+            };
+          }
+        }
       }
     );
+  }
 
-    // Tool for renaming a tag
+  private setupOperationalTools() {
+    // Tool for renaming a tag (remains as a tool since it's an operation)
     this.server.tool(
       "renameTag",
       "Rename a tag across all bookmarks in a specific collection or globally. The old tag will be replaced with the new tag name.",
@@ -235,93 +349,6 @@ export class RaindropMCPService {
             type: "text",
             text: `Tags [${tags.join(", ")}] deleted`
           }]
-        };
-      }
-    );
-
-    // Tool for retrieving all tags across all collections
-    this.server.tool(
-      "getAllTags",
-      "Retrieve all tags across all collections in your Raindrop.io account. Returns tag names and usage counts for organizing and filtering bookmarks.",
-      async () => {
-        const tags = await raindropService.getTags();
-        return {
-          content: tags.map(tag => ({
-            type: "text",
-            text: tag._id,
-            metadata: {
-              count: tag.count
-            }
-          }))
-        };
-      }
-    );
-
-    // Tool for retrieving all highlights across all raindrops
-    this.server.tool(
-      "getAllHighlights",
-      "Retrieve all text highlights you've created across all your bookmarks in Raindrop.io. Returns highlighted text, color, notes, and timestamps.",
-      async () => {
-        const highlights = await raindropService.getAllHighlights();
-        return {
-          content: highlights.map(highlight => ({
-            type: "text",
-            text: highlight.text,
-            metadata: {
-              color: highlight.color,
-              note: highlight.note,
-              created: highlight.created,
-              lastUpdate: highlight.lastUpdate
-            }
-          }))
-        };
-      }
-    );
-
-    // Tool for retrieving highlights
-    this.server.tool(
-      "getHighlights",
-      "Retrieve all text highlights for a specific bookmark. Returns highlighted text, color coding, notes, and timestamps.",
-      {
-        raindropId: z.number().describe("ID of the specific bookmark to retrieve text highlights from")
-      },
-      async ({ raindropId }) => {
-        const highlights = await raindropService.getHighlights(raindropId);
-        return {
-          content: highlights.map(highlight => ({
-            type: "text",
-            text: highlight.text,
-            metadata: {
-              color: highlight.color,
-              note: highlight.note,
-              created: highlight.created,
-              lastUpdate: highlight.lastUpdate
-            }
-          }))
-        };
-      }
-    );
-
-    // Tool for getting highlights by collection
-    this.server.tool(
-      "getHighlightsByCollection",
-      "Retrieve all text highlights from bookmarks in a specific collection. Returns highlighted text, color coding, notes, and timestamps.",
-      {
-        collectionId: z.number().describe("ID of the collection to retrieve highlights from")
-      },
-      async ({ collectionId }) => {
-        const highlights = await raindropService.getHighlightsByCollection(collectionId);
-        return {
-          content: highlights.map(highlight => ({
-            type: "text",
-            text: highlight.text,
-            metadata: {
-              color: highlight.color,
-              note: highlight.note,
-              created: highlight.created,
-              lastUpdate: highlight.lastUpdate
-            }
-          }))
         };
       }
     );
@@ -572,26 +599,10 @@ export class RaindropMCPService {
   public async start() {
     const transport = new StdioServerTransport(process.stdin, process.stdout);
     await this.server.connect(transport);
-    
-    // this.server.server.sendLoggingMessage({
-    //   level: "info",
-    //   data: "Starting Raindrop MCP server"
-    // });
-    // this.server.server.sendLoggingMessage({
-    //   level: "info",
-    //   data: "Setting up MCP handlers for Raindrop.io integration"
-    // });
-    // this.server.server.sendLoggingMessage({
-    //   level: "info",
-    //   data: "Raindrop MCP server started successfully"
-    // });
   }
 
   public async stop() {
-    // this.server.server.sendLoggingMessage({
-    //   level: "info",
-    //   data: "Stopping Raindrop MCP server"
-    // });
+    // Cleanup operations if needed
   }
 }
 
