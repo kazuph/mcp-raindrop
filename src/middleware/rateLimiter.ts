@@ -1,24 +1,23 @@
 import type { Request, Response, NextFunction } from 'express';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
-import config from '../config/config';
 
+// Hardcoded defaults previously from config
 const rateLimiter = new RateLimiterMemory({
-  points: config.rateLimitMaxRequests,
-  duration: config.rateLimitWindowMs / 1000, // convert to seconds
+  points: 120, // Default: config.rateLimitMaxRequests,
+  duration: 60, // Default: config.rateLimitWindowMs / 1000, // convert to seconds
 });
 
 export const rateLimiterMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
-    await rateLimiter.consume(req.ip ?? '0.0.0.0');
+    // Use a fallback key if req.ip is undefined
+    const key = req.ip ?? 'unknown_ip';
+    await rateLimiter.consume(key); // consume 1 point per request
     next();
-  } catch (error) {
-    res.status(429).json({
-      error: 'Too Many Requests',
-      message: 'Please try again later',
-    });
+  } catch (rejRes) {
+    res.status(429).send('Too Many Requests');
   }
 };

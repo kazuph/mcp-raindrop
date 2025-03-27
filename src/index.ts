@@ -1,26 +1,35 @@
-import mcpService from './services/mcp.service';
-//import { mcpSSEService } from './services/mcp-sse.service';
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { createRaindropServer } from './services/mcp.service.js';
+import { mcpSSEService } from './services/mcp-sse.service.js';
 
 async function main() {
   try {
-    // Start regular MCP server
-    await mcpService.start();
-    // Start MCP SSE server
- //   await mcpSSEService.start();
+    const transport = new StdioServerTransport(process.stdin, process.stdout);
+    // Create server using factory pattern
+    const { server, cleanup } = createRaindropServer();
+    
+    // Connect the server to the transport
+    await server.connect(transport);
+    
+    // Start MCP SSE server (uncommenting this)
+    await mcpSSEService.start();
+    
+    // Handle graceful shutdown
+    process.on('SIGINT', async () => {
+      // Stop the SSE service
+      await mcpSSEService.stop();
+      
+      // Clean up resources
+      await cleanup();
+      
+      // Close the server
+      await server.close();
+      process.exit(0);
+    });
   } catch (error) {
-    // mcpService.server.server.sendLoggingMessage({
-    //   level: "error",
-    //   data: `Failed to start services: ${error}`
-    // });
+    // We don't use console.log with STDIO transport
     process.exit(1);
   }
 }
 
 main();
-
-// Handle graceful shutdown
-process.on('SIGINT', async () => {
-//  await mcpSSEService.stop();
-  await mcpService.stop();
-  process.exit(0);
-});

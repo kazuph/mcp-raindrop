@@ -1,5 +1,5 @@
 import axios, { Axios, AxiosError } from 'axios';
-import config from '../config/config';
+import config from '../config/config.js';
 
 // Import shared types
 import type { Collection, Bookmark, Highlight, SearchParams } from '../types/raindrop.js';

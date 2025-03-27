@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { RaindropMCPService } from '../mcp.service';
-import raindropService from '../raindrop.service';
+import RaindropMCPService from '../mcp.service.js';
+import raindropService from '../raindrop.service.js';
 
 // Mock the dependencies
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
@@ -58,7 +58,7 @@ const TAG_OBSOLETE = 'obsolete';
 const TAG_TEMP = 'temp';
 
 describe('RaindropMCPService', () => {
-  let service: RaindropMCPService;
+  let service: typeof RaindropMCPService;
   let mockServer: any;
   let toolHandlers: Map<string, Function>;
 

@@ -1,5 +1,5 @@
 import type { Collection, Bookmark, SearchParams } from '../types/raindrop.js';
-import raindropService from '../services/raindrop.service';
+import raindropService from '../services/raindrop.service.js';
 import type { Request, Response } from 'express';
 
 export const raindropController = {
