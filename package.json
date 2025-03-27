@@ -4,12 +4,17 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "watch": "bun --watch run src/index.ts",
+        "watch": "node --watch run src/index.ts",
         "inspector": "npx @modelcontextprotocol/inspector bun run src/index.ts",
         "type-check": "tsc --noEmit",
         "test": "node --loader vitest/vitest.mjs",
         "test:coverage": "node --loader vitest/vitest.mjs run --coverage",
-        "node run": "node -r dotenv/config build/index.js"
+        "run": "node -r dotenv/config build/index.js",
+        "build": "bun build src/index.ts --outfile=build/index.js",
+        "start": "bun run src/index.ts",
+        "debug": "npm run inspector",
+        "clean": "rm -rf build",
+        "prebuild": "npm run clean"
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.8.0",

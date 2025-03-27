@@ -5,14 +5,14 @@
 			"type": "bun",
 			"script": "start",
 			"problemMatcher": ["$tsc"],
-			"label": "bun run src/index.ts",
+			"label": "bun: start",
 			"detail": "Runs the Bun start script for src/index.ts",
 			"group": {
 				"kind": "build",
 				"isDefault": true
 			},
 			"presentation": {
-				"reveal": "always",
+				"reveal": "silent",
 				"panel": "shared"
 			}
 		},
@@ -22,9 +22,9 @@
 			"detail": "Builds the project using Bun and outputs to build/index.js",
 			"group": {
 				"kind": "build",
-				"isDefault": true
+				"isDefault": false
 			},
-				"command": "bun",
+			"command": "bun",
 			"args": [
 				"build",
 				"src/index.ts",
@@ -35,7 +35,65 @@
 			},
 			"problemMatcher": ["$tsc"],
 			"presentation": {
-				"reveal": "always",
+				"reveal": "silent",
+				"panel": "shared"
+			}
+		},
+		{
+			"type": "shell",
+			"label": "Debug with Inspector",
+			"detail": "Runs the project with the Model Context Protocol Inspector for debugging",
+			"group": {
+				"kind": "test",
+				"isDefault": false
+			},
+			"command": "npx",
+			"args": [
+				"@modelcontextprotocol/inspector",
+				"bun",
+				"run",
+				"src/index.ts"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "silent",
+				"panel": "shared"
+			}
+		},
+		{
+			"type": "shell",
+			"label": "bun: update",
+			"detail": "Updates modules to the latest version",
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
+			"command": "bun",
+			"args": [
+				"update"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "silent",
+				"panel": "shared"
+			}
+		},
+		{
+			"type": "npm",
+			"script": "type-check",
+			"label": "Type Check",
+			"detail": "Runs TypeScript type checking without emitting files",
+			"group": {
+				"kind": "test",
+				"isDefault": false
+			},
+			"problemMatcher": ["$tsc"],
+			"presentation": {
+				"reveal": "silent",
 				"panel": "shared"
 			}
 		}
