@@ -42,87 +42,148 @@ export class RaindropMCPService {
   private setupCollectionResources() {
     // Resource for accessing collections
     this.server.resource(
-      "collections",
-      "Access and manage Raindrop.io collections (folders). Collections are containers for bookmarks and can be nested.",
       {
-        // List collections
-        list: {
-          description: "Retrieve all collections (folders) from Raindrop.io. Returns collection titles, IDs, and bookmark counts.",
-          handler: async () => {
-            const collections: Collection[] = await raindropService.getCollections();
-            return {
-              content: collections.map((collection: Collection) => ({
-                type: "text",
-                text: collection.title || "Unnamed Collection",
-                metadata: {
-                  id: collection._id,
-                  count: collection.count,
-                  public: collection.public,
-                  created: collection.created,
-                  ...(collection.lastUpdate && { lastUpdate: collection.lastUpdate })
-                }
-              }))
-            };
-          }
-        },
-        
-        // Get a single collection
-        get: {
-          description: "Retrieve a single collection by its ID. Returns collection details including title, ID, bookmark count, and metadata.",
-          parameters: {
-            id: z.number().describe("ID of the collection to retrieve")
+        name: "collections",
+        description: "Access and manage Raindrop.io collections (folders). Collections are containers for bookmarks and can be nested.",
+        operations: {
+          // List collections
+          list: {
+            description: "Retrieve all collections (folders) from Raindrop.io. Returns collection titles, IDs, and bookmark counts.",
+            handler: async () => {
+              const collections: Collection[] = await raindropService.getCollections();
+              return {
+                content: collections.map((collection: Collection) => ({
+                  type: "text",
+                  text: collection.title || "Unnamed Collection",
+                  metadata: {
+                    id: collection._id,
+                    count: collection.count,
+                    public: collection.public,
+                    created: collection.created,
+                    ...(collection.lastUpdate && { lastUpdate: collection.lastUpdate })
+                  }
+                }))
+              };
+            }
           },
-          handler: async ({ id }) => {
-            const collection: Collection = await raindropService.getCollection(id);
-            return {
-              content: [{
-                type: "text",
-                text: collection.title || "Unnamed Collection",
-                metadata: {
-                  id: collection._id,
-                  count: collection.count,
-                  public: collection.public,
-                  created: collection.created,
-                  ...(collection.lastUpdate && { lastUpdate: collection.lastUpdate })
-                }
-              }]
-            };
-          }
-        },
-        
-        // Create a collection
-        create: {
-          description: "Create a new collection (folder) in your Raindrop.io account.",
-          parameters: {
-            title: z.string().describe("Title of the new collection/folder to create in Raindrop.io"),
-            isPublic: z.boolean().optional().describe("Whether the collection is public (true) or private (false). Default is private.")
+          
+          // Get a single collection
+          get: {
+            description: "Retrieve a single collection by its ID. Returns collection details including title, ID, bookmark count, and metadata.",
+            parameters: {
+              id: z.number().describe("ID of the collection to retrieve")
+            },
+            handler: async ({ id }: { id: number }) => {
+              const collection: Collection = await raindropService.getCollection(id);
+              return {
+                content: [{
+                  type: "text",
+                  text: collection.title || "Unnamed Collection",
+                  metadata: {
+                    id: collection._id,
+                    count: collection.count,
+                    public: collection.public,
+                    created: collection.created,
+                    ...(collection.lastUpdate && { lastUpdate: collection.lastUpdate })
+                  }
+                }]
+              };
+            }
           },
-          handler: async ({ title, isPublic }) => {
-            const collection: Collection = await raindropService.createCollection(title, isPublic);
-            return {
-              content: [{
-                type: "text",
-                text: collection.title || "Unnamed Collection",
-                metadata: {
-                  id: collection._id,
-                  public: collection.public,
-                  created: collection.created,
-                  ...(collection.lastUpdate && { lastUpdate: collection.lastUpdate })
-                }
-              }]
-            };
+          
+          // Create a collection
+          create: {
+            description: "Create a new collection (folder) in your Raindrop.io account.",
+            parameters: {
+              title: z.string().describe("Title of the new collection/folder to create in Raindrop.io"),
+              isPublic: z.boolean().optional().describe("Whether the collection is public (true) or private (false). Default is private.")
+            },
+            handler: async ({ title, isPublic }: { title: string, isPublic?: boolean }) => {
+              const collection: Collection = await raindropService.createCollection(title, isPublic);
+              return {
+                content: [{
+                  type: "text",
+                  text: collection.title || "Unnamed Collection",
+                  metadata: {
+                    id: collection._id,
+                    public: collection.public,
+                    created: collection.created,
+                    ...(collection.lastUpdate && { lastUpdate: collection.lastUpdate })
+                  }
+                }]
+              };
+            }
+          },
+          
+          // Update a collection
+          update: {
+            description: "Update an existing collection in your Raindrop.io account.",
+            parameters: {
+              id: z.number().describe("ID of the collection to update"),
+              title: z.string().optional().describe("New title for the collection"),
+              public: z.boolean().optional().describe("Whether the collection should be public"),
+              view: z.enum(['list', 'simple', 'grid', 'masonry', 'magazine']).optional().describe("View mode for the collection"),
+              cover: z.string().optional().describe("Cover image URL for the collection")
+            },
+            handler: async (params: { 
+              id: number; 
+              title?: string; 
+              public?: boolean;
+              view?: 'list' | 'simple' | 'grid' | 'masonry' | 'magazine';
+              cover?: string;
+            }) => {
+              const { id, ...updates } = params;
+              const collection = await raindropService.updateCollection(id, updates);
+              
+              return {
+                content: [{
+                  type: "text",
+                  text: `Updated collection: ${collection.title}`,
+                  metadata: {
+                    id: collection._id,
+                    title: collection.title,
+                    count: collection.count,
+                    public: collection.public,
+                    created: collection.created,
+                    lastUpdate: collection.lastUpdate
+                  }
+                }]
+              };
+            }
+          },
+          
+          // Delete a collection
+          remove: {
+            description: "Delete a collection from your Raindrop.io account. Bookmarks within this collection will be moved to Trash.",
+            parameters: {
+              id: z.number().describe("ID of the collection to delete")
+            },
+            handler: async ({ id }: { id: number }) => {
+              await raindropService.deleteCollection(id);
+              
+              return {
+                content: [{
+                  type: "text",
+                  text: `Deleted collection ID: ${id}`
+                }]
+              };
+            }
           }
         }
+      },
+      async (resourceName) => {
+        // Example readCallback implementation
+        return `Resource ${resourceName} is ready.`;
       }
     );
   }
   
   private setupBookmarkResources() {
     // Resource for accessing bookmarks
-    this.server.resource(
-      "bookmarks",
-      "Access and manage bookmarks in Raindrop.io.",
-      {
+    this.server.resource({
+      name: "bookmarks",
+      description: "Access and manage bookmarks in Raindrop.io.",
+      operations: {
         // List bookmarks with filtering options
         list: {
           description: "Retrieve bookmarks from Raindrop.io with powerful filtering options.",
@@ -145,7 +206,24 @@ export class RaindropMCPService {
             duplicates: z.boolean().optional().describe("Filter for duplicated links only"),
             notag: z.boolean().optional().describe("Filter for bookmarks without tags")
           },
-          handler: async (params) => {
+          handler: async (params: {
+            collectionId?: number;
+            search?: string;
+            tags?: string[];
+            page?: number;
+            perPage?: number;
+            sort?: 'title' | '-title' | 'domain' | '-domain' | 'created' | '-created' | 'lastUpdate' | '-lastUpdate';
+            important?: boolean;
+            media?: 'image' | 'video' | 'document' | 'audio';
+            annotated?: boolean;
+            type?: 'link' | 'article' | 'image' | 'video' | 'document' | 'audio';
+            createdStart?: string;
+            createdEnd?: string;
+            domain?: string;
+            broken?: boolean;
+            duplicates?: boolean;
+            notag?: boolean;
+          }) => {
             const filters: Record<string, any> = {};
             if (params.collectionId) filters.collection = params.collectionId;
             if (params.search) filters.search = params.search;
@@ -184,24 +262,152 @@ export class RaindropMCPService {
               }))
             };
           }
+        },
+        
+        // Create a bookmark
+        create: {
+          description: "Create a new bookmark in your Raindrop.io account.",
+          parameters: {
+            collectionId: z.number().describe("ID of the collection to add the bookmark to. Use 0 for unsorted."),
+            link: z.string().describe("The URL of the webpage to bookmark"),
+            title: z.string().optional().describe("Custom title for the bookmark. If omitted, will be extracted from the webpage"),
+            excerpt: z.string().optional().describe("Custom description/excerpt for the bookmark"),
+            tags: z.array(z.string()).optional().describe("Tags to apply to the bookmark"),
+            important: z.boolean().optional().describe("Whether to mark the bookmark as important/favorite")
+          },
+          handler: async (params: {
+            collectionId: number;
+            link: string;
+            title?: string;
+            excerpt?: string;
+            tags?: string[];
+            important?: boolean;
+          }) => {
+            const bookmark = await raindropService.createBookmark(params.collectionId, {
+              link: params.link,
+              title: params.title,
+              excerpt: params.excerpt,
+              tags: params.tags,
+              important: params.important
+            });
+            
+            return {
+              content: [{
+                type: "resource",
+                resource: {
+                  text: bookmark.title || "Untitled Bookmark",
+                  uri: bookmark.link,
+                  metadata: {
+                    id: bookmark._id,
+                    excerpt: bookmark.excerpt,
+                    tags: bookmark.tags,
+                    collectionId: params.collectionId,
+                    created: bookmark.created,
+                    lastUpdate: bookmark.lastUpdate,
+                    type: bookmark.type
+                  }
+                }
+              }]
+            };
+          }
+        },
+        
+        // Update a bookmark
+        update: {
+          description: "Update an existing bookmark in your Raindrop.io account.",
+          parameters: {
+            id: z.number().describe("ID of the bookmark to update"),
+            collectionId: z.number().optional().describe("Move bookmark to this collection ID"),
+            link: z.string().optional().describe("New URL for the bookmark"),
+            title: z.string().optional().describe("New title for the bookmark"),
+            excerpt: z.string().optional().describe("New description/excerpt for the bookmark"),
+            tags: z.array(z.string()).optional().describe("New tags for the bookmark (replaces existing tags)"),
+            important: z.boolean().optional().describe("Whether to mark the bookmark as important/favorite")
+          },
+          handler: async (params: {
+            id: number;
+            collectionId?: number;
+            link?: string;
+            title?: string;
+            excerpt?: string;
+            tags?: string[];
+            important?: boolean;
+          }) => {
+            const updates: Record<string, any> = {};
+            
+            if (params.collectionId !== undefined) {
+              updates.collection = { $id: params.collectionId };
+            }
+            if (params.link !== undefined) updates.link = params.link;
+            if (params.title !== undefined) updates.title = params.title;
+            if (params.excerpt !== undefined) updates.excerpt = params.excerpt;
+            if (params.tags !== undefined) updates.tags = params.tags;
+            if (params.important !== undefined) updates.important = params.important;
+            
+            const bookmark = await raindropService.updateBookmark(params.id, updates);
+            
+            return {
+              content: [{
+                type: "resource",
+                resource: {
+                  text: bookmark.title || "Untitled Bookmark",
+                  uri: bookmark.link,
+                  metadata: {
+                    id: bookmark._id,
+                    excerpt: bookmark.excerpt,
+                    tags: bookmark.tags,
+                    collectionId: bookmark.collection?.$id,
+                    created: bookmark.created,
+                    lastUpdate: bookmark.lastUpdate,
+                    type: bookmark.type
+                  }
+                }
+              }]
+            };
+          }
+        },
+        
+        // Delete a bookmark
+        remove: {
+          description: "Delete a bookmark or move it to trash.",
+          parameters: {
+            id: z.number().describe("ID of the bookmark to delete"),
+            permanent: z.boolean().optional().describe("If true, permanently deletes the bookmark. If false or omitted, moves it to trash.")
+          },
+          handler: async (params: { id: number; permanent?: boolean }) => {
+            await raindropService.deleteBookmark(params.id, params.permanent);
+            
+            return {
+              content: [{
+                type: "text",
+                text: params.permanent 
+                  ? `Bookmark ${params.id} was permanently deleted` 
+                  : `Bookmark ${params.id} was moved to trash`
+              }]
+            };
+          }
         }
       }
-    );
+    },
+    async (resourceName) => {
+      // Example readCallback implementation
+      return `Resource ${resourceName} is ready.`;
+    });
   }
 
   private setupTagResources() {
     // Resource for accessing tags
-    this.server.resource(
-      "tags",
-      "Access and manage tags in Raindrop.io.",
-      {
+    this.server.resource({
+      name: "tags",
+      description: "Access and manage tags in Raindrop.io.",
+      operations: {
         // List all tags
         list: {
           description: "Retrieve all tags used within a specific collection or across all collections.",
           parameters: {
             collectionId: z.number().optional().describe("ID of the collection to filter tags by. Use 0 for unsorted bookmarks' tags. Omit to get tags across all collections.")
           },
-          handler: async ({ collectionId }) => {
+          handler: async ({ collectionId }: { collectionId?: number }) => {
             const tags = await raindropService.getTags(collectionId);
             return {
               content: tags.map(tag => ({
@@ -215,15 +421,19 @@ export class RaindropMCPService {
           }
         }
       }
-    );
+    },
+    async (resourceName) => {
+      // Example readCallback implementation
+      return `Resource ${resourceName} is ready.`;
+    });
   }
 
   private setupHighlightResources() {
     // Resource for accessing highlights
-    this.server.resource(
-      "highlights",
-      "Access and manage text highlights in Raindrop.io.",
-      {
+    this.server.resource({
+      name: "highlights",
+      description: "Access and manage text highlights in Raindrop.io.",
+      operations: {
         // List all highlights
         list: {
           description: "Retrieve all text highlights you've created across all your bookmarks in Raindrop.io.",
@@ -250,7 +460,7 @@ export class RaindropMCPService {
           parameters: {
             raindropId: z.number().describe("ID of the specific bookmark to retrieve text highlights from")
           },
-          handler: async ({ raindropId }) => {
+          handler: async ({ raindropId }: { raindropId: number }) => {
             const highlights = await raindropService.getHighlights(raindropId);
             return {
               content: highlights.map(highlight => ({
@@ -273,7 +483,7 @@ export class RaindropMCPService {
           parameters: {
             collectionId: z.number().describe("ID of the collection to retrieve highlights from")
           },
-          handler: async ({ collectionId }) => {
+          handler: async ({ collectionId }: { collectionId: number }) => {
             const highlights = await raindropService.getHighlightsByCollection(collectionId);
             return {
               content: highlights.map(highlight => ({
@@ -290,7 +500,11 @@ export class RaindropMCPService {
           }
         }
       }
-    );
+    },
+    async (resourceName) => {
+      // Example readCallback implementation
+      return `Resource ${resourceName} is ready.`;
+    });
   }
 
   private setupOperationalTools() {
@@ -303,7 +517,7 @@ export class RaindropMCPService {
         oldName: z.string().describe("Current name of the tag to be renamed"),
         newName: z.string().describe("New name for the tag. Must be a unique tag name.")
       },
-      async ({ collectionId, oldName, newName }) => {
+      async ({ collectionId, oldName, newName }: { collectionId?: number; oldName: string; newName: string }) => {
         await raindropService.renameTag(collectionId, oldName, newName);
         return {
           content: [{

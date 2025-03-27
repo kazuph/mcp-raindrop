@@ -87,8 +87,14 @@ class RaindropService {
     return data.item;
   }
 
-  async deleteBookmark(id: number): Promise<void> {
-    await this.api.delete(`/raindrop/${id}`);
+  async deleteBookmark(id: number, permanent: boolean = false): Promise<void> {
+    if (permanent) {
+      // Permanent deletion endpoint
+      await this.api.delete(`/raindrop/${id}/permanent`);
+    } else {
+      // Move to trash (default behavior)
+      await this.api.delete(`/raindrop/${id}`);
+    }
   }
 
   // Tags

@@ -114,10 +114,12 @@ describe('RaindropMCPService', () => {
         created: '2025-03-26T00:00:00Z',
         lastUpdate: '2025-03-26T00:00:00Z'
       };
-      (raindropService.getCollection as jest.Mock).mockResolvedValue(mockCollection);
+      (raindropService.getCollection as ReturnType<typeof vi.fn>).mockResolvedValue(mockCollection);
 
       const handler = toolHandlers.get('getCollection');
-      expect(handler).toBeDefined();
+      if (!handler) {
+        throw new Error('Handler getCollection not registered');
+      }
 
       const result = await handler({ id: KNOWN_COLLECTION_ID });
       expect(raindropService.getCollection).toHaveBeenCalledWith(KNOWN_COLLECTION_ID);
@@ -155,10 +157,12 @@ describe('RaindropMCPService', () => {
           lastUpdate: '2025-03-26T00:00:00Z'
         }
       ];
-      (raindropService.getCollections as jest.Mock).mockResolvedValue(mockCollections);
+      (raindropService.getCollections as ReturnType<typeof vi.fn>).mockResolvedValue(mockCollections);
 
       const handler = toolHandlers.get('getCollections');
-      expect(handler).toBeDefined();
+      if (!handler) {
+        throw new Error('Handler getCollections not registered');
+      }
 
       const result = await handler();
       expect(raindropService.getCollections).toHaveBeenCalled();
@@ -187,10 +191,12 @@ describe('RaindropMCPService', () => {
             created: '2025-03-26T01:00:00Z',
             lastUpdate: '2025-03-26T01:00:00Z'
         };
-        (raindropService.createCollection as jest.Mock).mockResolvedValue(mockNewCollection);
+        (raindropService.createCollection as ReturnType<typeof vi.fn>).mockResolvedValue(mockNewCollection);
 
         const handler = toolHandlers.get('createCollection');
-        expect(handler).toBeDefined();
+        if (!handler) {
+          throw new Error('Handler createCollection not registered');
+        }
 
         const result = await handler({ title: newCollectionTitle });
         expect(raindropService.createCollection).toHaveBeenCalledWith(newCollectionTitle);
@@ -220,10 +226,12 @@ describe('RaindropMCPService', () => {
             created: '2025-03-26T00:00:00Z',
             lastUpdate: '2025-03-26T02:00:00Z'
         };
-        (raindropService.updateCollection as jest.Mock).mockResolvedValue(mockUpdatedCollection);
+        (raindropService.updateCollection as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedCollection);
 
         const handler = toolHandlers.get('updateCollection');
-        expect(handler).toBeDefined();
+        if (!handler) {
+          throw new Error('Handler updateCollection not registered');
+        }
 
         const updates = { title: updatedTitle, public: true };
         const result = await handler({ id: OTHER_COLLECTION_ID, ...updates });
@@ -245,10 +253,12 @@ describe('RaindropMCPService', () => {
     });
 
     it('should set up deleteCollection handler', async () => {
-        (raindropService.deleteCollection as jest.Mock).mockResolvedValue(undefined);
+        (raindropService.deleteCollection as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 
         const handler = toolHandlers.get('deleteCollection');
-        expect(handler).toBeDefined();
+        if (!handler) {
+          throw new Error('Handler deleteCollection not registered');
+        }
 
         const result = await handler({ id: OTHER_COLLECTION_ID }); // Use a generic ID for delete tests
         expect(raindropService.deleteCollection).toHaveBeenCalledWith(OTHER_COLLECTION_ID);
@@ -261,10 +271,12 @@ describe('RaindropMCPService', () => {
     });
 
     it('should set up reorderCollections handler', async () => {
-        (raindropService.reorderCollections as jest.Mock).mockResolvedValue(undefined);
+        (raindropService.reorderCollections as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 
         const handler = toolHandlers.get('reorderCollections');
-        expect(handler).toBeDefined();
+        if (!handler) {
+          throw new Error('Handler reorderCollections not registered');
+        }
 
         const ids = [OTHER_COLLECTION_ID, KNOWN_COLLECTION_ID];
         const result = await handler({ ids });
@@ -294,10 +306,12 @@ describe('RaindropMCPService', () => {
           }
         ]
       };
-      (raindropService.getBookmarks as jest.Mock).mockResolvedValue(mockBookmarks);
+      (raindropService.getBookmarks as ReturnType<typeof vi.fn>).mockResolvedValue(mockBookmarks);
 
       const handler = toolHandlers.get('getBookmarks');
-      expect(handler).toBeDefined();
+      if (!handler) {
+        throw new Error('Handler getBookmarks not registered');
+      }
 
       const args = { collectionId: KNOWN_COLLECTION_ID, page: 0, perPage: 20, sort: '-created', search: TAG_TEST };
       const result = await handler(args);
@@ -340,10 +354,12 @@ describe('RaindropMCPService', () => {
                 type: 'link'
             }
         };
-        (raindropService.createBookmark as jest.Mock).mockResolvedValue(mockNewBookmark);
+        (raindropService.createBookmark as ReturnType<typeof vi.fn>).mockResolvedValue(mockNewBookmark);
 
         const handler = toolHandlers.get('createBookmark');
-        expect(handler).toBeDefined();
+        if (!handler) {
+          throw new Error('Handler createBookmark not registered');
+        }
 
         const bookmarkData = {
             link: newBookmarkLink,
@@ -391,10 +407,12 @@ describe('RaindropMCPService', () => {
                 type: 'link'
             }
         };
-        (raindropService.updateBookmark as jest.Mock).mockResolvedValue(mockUpdatedBookmark);
+        (raindropService.updateBookmark as ReturnType<typeof vi.fn>).mockResolvedValue(mockUpdatedBookmark);
 
         const handler = toolHandlers.get('updateBookmark');
-        expect(handler).toBeDefined();
+        if (!handler) {
+          throw new Error('Handler updateBookmark not registered');
+        }
 
         const updates = { title: updatedBookmarkTitle, excerpt: updatedBookmarkExcerpt, tags: updatedBookmarkTags };
         const result = await handler({ id: BOOKMARK_ID_1, ...updates });
@@ -420,10 +438,12 @@ describe('RaindropMCPService', () => {
     });
 
     it('should set up deleteBookmark handler', async () => {
-        (raindropService.deleteBookmark as jest.Mock).mockResolvedValue(undefined);
+        (raindropService.deleteBookmark as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 
         const handler = toolHandlers.get('deleteBookmark');
-        expect(handler).toBeDefined();
+        if (!handler) {
+          throw new Error('Handler deleteBookmark not registered');
+        }
 
         const result = await handler({ id: BOOKMARK_ID_1 });
         expect(raindropService.deleteBookmark).toHaveBeenCalledWith(BOOKMARK_ID_1);
@@ -442,10 +462,12 @@ describe('RaindropMCPService', () => {
         { _id: TAG_TS, count: 35 },
         { _id: TAG_API, count: 28 }
       ];
-      (raindropService.getTags as jest.Mock).mockResolvedValue(mockTags);
+      (raindropService.getTags as ReturnType<typeof vi.fn>).mockResolvedValue(mockTags);
 
       const handler = toolHandlers.get('getTags');
-      expect(handler).toBeDefined();
+      if (!handler) {
+        throw new Error('Handler getTags not registered');
+      }
 
       const result = await handler({ collectionId: KNOWN_COLLECTION_ID });
       expect(raindropService.getTags).toHaveBeenCalledWith(KNOWN_COLLECTION_ID);
@@ -461,10 +483,12 @@ describe('RaindropMCPService', () => {
     });
 
     it('should set up renameTag handler', async () => {
-        (raindropService.renameTag as jest.Mock).mockResolvedValue(undefined);
+        (raindropService.renameTag as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 
         const handler = toolHandlers.get('renameTag');
-        expect(handler).toBeDefined();
+        if (!handler) {
+          throw new Error('Handler renameTag not registered');
+        }
 
         const args = { oldName: TAG_JS, newName: TAG_JS_RENAMED };
         const result = await handler(args);
@@ -478,10 +502,12 @@ describe('RaindropMCPService', () => {
     });
 
     it('should set up mergeTags handler', async () => {
-        (raindropService.mergeTags as jest.Mock).mockResolvedValue(undefined);
+        (raindropService.mergeTags as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 
         const handler = toolHandlers.get('mergeTags');
-        expect(handler).toBeDefined();
+        if (!handler) {
+          throw new Error('Handler mergeTags not registered');
+        }
 
         const args = { sourceTags: [TAG_JS_RENAMED, TAG_ECMASCRIPT], destinationTag: TAG_JS };
         const result = await handler(args);
@@ -495,10 +521,12 @@ describe('RaindropMCPService', () => {
     });
 
     it('should set up deleteTags handler', async () => {
-        (raindropService.deleteTags as jest.Mock).mockResolvedValue(undefined);
+        (raindropService.deleteTags as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 
         const handler = toolHandlers.get('deleteTags');
-        expect(handler).toBeDefined();
+        if (!handler) {
+          throw new Error('Handler deleteTags not registered');
+        }
 
         const args = { tags: [TAG_OBSOLETE, TAG_TEMP] };
         const result = await handler(args);
@@ -520,10 +548,12 @@ describe('RaindropMCPService', () => {
             },
             result: true
         };
-        (raindropService.getUserInfo as jest.Mock).mockResolvedValue(mockUserInfo);
+        (raindropService.getUserInfo as ReturnType<typeof vi.fn>).mockResolvedValue(mockUserInfo);
 
         const handler = toolHandlers.get('getUserInfo');
-        expect(handler).toBeDefined();
+        if (!handler) {
+          throw new Error('Handler getUserInfo not registered');
+        }
 
         const result = await handler();
         expect(raindropService.getUserInfo).toHaveBeenCalled();
@@ -554,10 +584,12 @@ describe('RaindropMCPService', () => {
             ],
             result: true
         };
-        (raindropService.getAllHighlights as jest.Mock).mockResolvedValue(mockHighlights);
+        (raindropService.getAllHighlights as ReturnType<typeof vi.fn>).mockResolvedValue(mockHighlights);
 
         const handler = toolHandlers.get('getAllHighlights');
-        expect(handler).toBeDefined();
+        if (!handler) {
+          throw new Error('Handler getAllHighlights not registered');
+        }
 
         const result = await handler();
         expect(raindropService.getAllHighlights).toHaveBeenCalled();
@@ -579,10 +611,12 @@ describe('RaindropMCPService', () => {
 
     it('should handle collection not found error', async () => {
       const nonExistentId = 999999;
-      (raindropService.getCollection as jest.Mock).mockRejectedValue(new Error('Collection not found'));
+      (raindropService.getCollection as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Collection not found'));
 
       const handler = toolHandlers.get('getCollection');
-      expect(handler).toBeDefined();
+      if (!handler) {
+        throw new Error('Handler getCollection not registered');
+      }
 
       await expect(handler({ id: nonExistentId })).rejects.toThrow('Collection not found');
       expect(raindropService.getCollection).toHaveBeenCalledWith(nonExistentId);
@@ -590,10 +624,12 @@ describe('RaindropMCPService', () => {
 
     it('should handle bookmark creation error', async () => {
         const error = new Error('Failed to create bookmark');
-        (raindropService.createBookmark as jest.Mock).mockRejectedValue(error);
+        (raindropService.createBookmark as ReturnType<typeof vi.fn>).mockRejectedValue(error);
 
         const handler = toolHandlers.get('createBookmark');
-        expect(handler).toBeDefined();
+        if (!handler) {
+          throw new Error('Handler createBookmark not registered');
+        }
 
         const bookmarkData = { link: 'https://badlink.com' };
         await expect(handler(bookmarkData)).rejects.toThrow('Failed to create bookmark');
