@@ -1,42 +1,42 @@
-import { describe, expect, test, jest, beforeEach, afterEach } from '@jest/globals';
+import { describe, expect, test, beforeEach, vi } from 'vitest';
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { RaindropMCPService } from '../mcp.service';
-import raindropService from '../raindrop.service';
+import { RaindropMCPService } from '../mcp.service.js';
+import raindropService from '../raindrop.service.js';
 
 // Mock dependencies
-jest.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
-  McpServer: jest.fn().mockImplementation(() => ({
-    registerTool: jest.fn(),
-    connect: jest.fn(),
-    close: jest.fn(),
+vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
+  McpServer: vi.fn().mockImplementation(() => ({
+    registerTool: vi.fn(),
+    connect: vi.fn(),
+    close: vi.fn(),
   })),
 }));
 
-jest.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
-  StdioServerTransport: jest.fn().mockImplementation(() => ({})),
+vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
+  StdioServerTransport: vi.fn().mockImplementation(() => ({})),
 }));
 
-jest.mock('../raindrop.service.js', () => ({
+vi.mock('../raindrop.service.js', () => ({
   __esModule: true,
   default: {
-    getCollection: jest.fn(),
-    getCollections: jest.fn(),
-    getBookmark: jest.fn(),
-    updateBookmark: jest.fn(),
-    mergeTags: jest.fn(),
-    deleteTags: jest.fn(),
+    getCollection: vi.fn(),
+    getCollections: vi.fn(),
+    getBookmark: vi.fn(),
+    updateBookmark: vi.fn(),
+    mergeTags: vi.fn(),
+    deleteTags: vi.fn(),
   },
 }));
 
 describe('RaindropMCPService', () => {
   let service: RaindropMCPService;
-  let mockServer: jest.Mocked<McpServer>;
-
+  let mockServer: Mocked<McpServer>;
+  
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     service = new RaindropMCPService();
-    mockServer = (McpServer as jest.Mock).mock.results[0].value;
+    mockServer = (McpServer as unknown as vi.Mock).mock.results[0].value;
   });
 
   test('constructor initializes with correct configuration', () => {

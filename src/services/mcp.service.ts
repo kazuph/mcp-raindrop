@@ -14,7 +14,7 @@ export class RaindropMCPService {
       version: '1.0.0',
       description: 'MCP Server for Raindrop.io bookmarking service',
       capabilities: {
-        logging: true
+        logging: false
       }
     });
 
