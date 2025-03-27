@@ -1,50 +1,45 @@
-import { jest } from '@jest/globals';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import RaindropMCPService from '../mcp.service.js';
-import raindropService from '../raindrop.service.js';
+import { describe, expect, test, jest, beforeEach, afterEach } from '@jest/globals';
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { RaindropMCPService } from '../mcp.service';
+import raindropService from '../raindrop.service';
 
-jest.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
-  return {
-    McpServer: jest.fn().mockImplementation(() => {
-      return {
-        addTool: jest.fn(),
-        connect: jest.fn(),
-        close: jest.fn()
-      };
-    })
-  };
-});
+// Mock dependencies
+jest.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
+  McpServer: jest.fn().mockImplementation(() => ({
+    registerTool: jest.fn(),
+    connect: jest.fn(),
+    close: jest.fn(),
+  })),
+}));
 
-jest.mock('@modelcontextprotocol/sdk/server/stdio.js', () => {
-  return {
-    StdioServerTransport: jest.fn().mockImplementation(() => {
-      return {};
-    })
-  };
-});
+jest.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
+  StdioServerTransport: jest.fn().mockImplementation(() => ({})),
+}));
 
-jest.mock('../raindrop.service.js', () => {
-  return {
-    default: {
-      getCollection: jest.fn(),
-      getCollections: jest.fn(),
-      getBookmark: jest.fn(),
-      updateBookmark: jest.fn(),
-      mergeTags: jest.fn(),
-      deleteTags: jest.fn()
-    }
-  };
-});
+jest.mock('../raindrop.service.js', () => ({
+  __esModule: true,
+  default: {
+    getCollection: jest.fn(),
+    getCollections: jest.fn(),
+    getBookmark: jest.fn(),
+    updateBookmark: jest.fn(),
+    mergeTags: jest.fn(),
+    deleteTags: jest.fn(),
+  },
+}));
 
 describe('RaindropMCPService', () => {
   let service: RaindropMCPService;
-  
+  let mockServer: jest.Mocked<McpServer>;
+
   beforeEach(() => {
     jest.clearAllMocks();
     service = new RaindropMCPService();
+    mockServer = (McpServer as jest.Mock).mock.results[0].value;
   });
 
-  test('should initialize with correct parameters', () => {
+  test('constructor initializes with correct configuration', () => {
     expect(McpServer).toHaveBeenCalledWith({
       name: 'raindrop-mcp',
       version: '1.0.0',
@@ -55,18 +50,61 @@ describe('RaindropMCPService', () => {
     });
   });
 
-  test('should register appropriate tools', () => {
-    const mockServer = new McpServer({} as any);
-    expect(mockServer.addTool).toHaveBeenCalledTimes(6); // Should register 6 tools
+  test('initializeTools registers all required tools', () => {
+    expect(mockServer.registerTool).toHaveBeenCalledTimes(6);
+    
+    // Check registrations for each tool
+    expect(mockServer.registerTool).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'getCollection',
+        visibility: 'public'
+      })
+    );
+    
+    expect(mockServer.registerTool).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'getCollections',
+        visibility: 'public'
+      })
+    );
+    
+    expect(mockServer.registerTool).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'getBookmark',
+        visibility: 'public'
+      })
+    );
+    
+    expect(mockServer.registerTool).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'updateBookmark',
+        visibility: 'public'
+      })
+    );
+    
+    expect(mockServer.registerTool).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'mergeTags',
+        visibility: 'public'
+      })
+    );
+    
+    expect(mockServer.registerTool).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'deleteTags',
+        visibility: 'public'
+      })
+    );
   });
 
-  test('start should connect to transport', async () => {
+  test('start connects server with StdioServerTransport', async () => {
     await service.start();
-    expect((service as any).server.connect).toHaveBeenCalled();
+    expect(StdioServerTransport).toHaveBeenCalledWith(process.stdin, process.stdout);
+    expect(mockServer.connect).toHaveBeenCalled();
   });
 
-  test('stop should close the server', async () => {
+  test('stop closes server', async () => {
     await service.stop();
-    expect((service as any).server.close).toHaveBeenCalled();
+    expect(mockServer.close).toHaveBeenCalled();
   });
 });
