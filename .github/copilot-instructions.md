@@ -6,5 +6,5 @@ Refer to [https://github.com/modelcontextprotocol/typescript-sdk](https://github
 STDIO for local servers does not like console.log so don't include it.
 [MCP Debugging Instructions](https://modelcontextprotocol.io/docs/tools/debugging)
 I am using the [Inspeector](https://modelcontextprotocol.io/docs/tools/inspector)
-
+use [fastmcp](https://github.com/punkpeye/fastmcp) as a helper library.
 when testing, a collectionid:"24419967" should result with the collection.title: "gdelt" because it is a known collection.
