@@ -28,6 +28,11 @@ class RaindropService {
     return data.item;
   }
 
+  async getChildCollections(parentId: number): Promise<Collection[]> {
+    const { data } = await this.api.get(`/collections/${parentId}/childrens`);
+    return data.items;
+  }
+
   async createCollection(title: string, isPublic = false): Promise<Collection> {
     const { data } = await this.api.post('/collection', {
       title,
@@ -43,6 +48,21 @@ class RaindropService {
 
   async deleteCollection(id: number): Promise<void> {
     await this.api.delete(`/collection/${id}`);
+  }
+
+  async shareCollection(
+    id: number, 
+    level: 'view' | 'edit' | 'remove', 
+    emails?: string[]
+  ): Promise<{ link: string; access: any[] }> {
+    const { data } = await this.api.put(`/collection/${id}/sharing`, {
+      level,
+      emails
+    });
+    return {
+      link: data.link,
+      access: data.access || []
+    };
   }
 
   // Bookmarks
@@ -87,14 +107,23 @@ class RaindropService {
     return data.item;
   }
 
-  async deleteBookmark(id: number, permanent: boolean = false): Promise<void> {
-    if (permanent) {
-      // Permanent deletion endpoint
-      await this.api.delete(`/raindrop/${id}/permanent`);
-    } else {
-      // Move to trash (default behavior)
-      await this.api.delete(`/raindrop/${id}`);
-    }
+  async deleteBookmark(id: number): Promise<void> {
+    await this.api.delete(`/raindrop/${id}`);
+  }
+  
+  async permanentDeleteBookmark(id: number): Promise<void> {
+    await this.api.delete(`/raindrop/${id}/permanent`);
+  }
+
+  async batchUpdateBookmarks(
+    ids: number[], 
+    updates: { tags?: string[]; collection?: number; important?: boolean; broken?: boolean; }
+  ): Promise<{ result: boolean }> {
+    const { data } = await this.api.put('/raindrops', {
+      ids,
+      ...updates
+    });
+    return { result: data.result };
   }
 
   // Tags
@@ -107,51 +136,75 @@ class RaindropService {
     return data.items;
   }
 
-  public async deleteTags(collectionId: number | undefined, tags: string[]): Promise<void> {
-    // console.log(`Deleting tags [${tags.join(", ")}] from collection ID ${collectionId}`);
-    // Add actual implementation here
+  async getTagsByCollection(collectionId: number): Promise<{ _id: string; count: number }[]> {
+    return this.getTags(collectionId);
   }
 
-  public async renameTag(collectionId: number | undefined, oldName: string, newName: string): Promise<void> {
-    // console.log(`Renaming tag '${oldName}' to '${newName}' in collection ID ${collectionId}`);
-    // Add actual implementation here
+  async deleteTags(collectionId: number | undefined, tags: string[]): Promise<{ result: boolean }> {
+    const endpoint = collectionId ? `/tags/${collectionId}` : '/tags/0';
+    const { data } = await this.api.delete(endpoint, {
+      data: { tags }
+    });
+    return { result: data.result };
   }
 
-  public async mergeTags(collectionId: number | undefined, tags: string[], newName: string): Promise<void> {
-    // console.log(`Merging tags [${tags.join(", ")}] into '${newName}' in collection ID ${collectionId}`);
-    // Add actual implementation here
+  async renameTag(collectionId: number | undefined, oldName: string, newName: string): Promise<{ result: boolean }> {
+    const endpoint = collectionId ? `/tags/${collectionId}` : '/tags/0';
+    const { data } = await this.api.put(endpoint, {
+      old: oldName,
+      new: newName
+    });
+    return { result: data.result };
   }
 
-  public async reorderCollections(sort: string): Promise<void> {
-    // console.log(`Reordering collections by '${sort}'`);
-    // Add actual implementation here
-  }
-
-  public async toggleCollectionsExpansion(expand: boolean): Promise<void> {
-    // console.log(`Collections ${expand ? "expanded" : "collapsed"}`);
-    // Add actual implementation here
-  }
-
-  public async mergeCollections(targetCollectionId: number, collectionIds: number[]): Promise<void> {
-    // console.log(`Merging collections [${collectionIds.join(", ")}] into collection ID ${targetCollectionId}`);
-    // Add actual implementation here
-  }
-
-  public async removeEmptyCollections(): Promise<{ count: number }> {
-    // console.log("Removing all empty collections");
-    // Add actual implementation here
-    return { count: 0 };
-  }
-
-  public async emptyTrash(): Promise<void> {
-    // console.log("Emptying the trash");
-    // Add actual implementation here
+  async mergeTags(collectionId: number | undefined, tags: string[], newName: string): Promise<{ result: boolean }> {
+    const promises = tags.map(tag => this.renameTag(collectionId, tag, newName));
+    await Promise.all(promises);
+    return { result: true };
   }
 
   // User
   async getUserInfo() {
     const { data } = await this.api.get('/user');
     return data.user;
+  }
+
+  async getUserStats() {
+    const { data } = await this.api.get('/user/stats');
+    return data;
+  }
+
+  async getCollectionStats(collectionId: number) {
+    const { data } = await this.api.get(`/collection/${collectionId}/stats`);
+    return data;
+  }
+
+  // Collections management
+  async reorderCollections(sort: string): Promise<{ result: boolean }> {
+    const { data } = await this.api.put('/collections/sort', { sort });
+    return { result: data.result || false };
+  }
+
+  async toggleCollectionsExpansion(expand: boolean): Promise<{ result: boolean }> {
+    const { data } = await this.api.put('/collections/collapsed', { collapsed: !expand });
+    return { result: data.result || false };
+  }
+
+  async mergeCollections(targetCollectionId: number, collectionIds: number[]): Promise<{ result: boolean }> {
+    const { data } = await this.api.put(`/collection/${targetCollectionId}/merge`, {
+      with: collectionIds
+    });
+    return { result: data.result || false };
+  }
+
+  async removeEmptyCollections(): Promise<{ count: number }> {
+    const { data } = await this.api.put('/collections/clean');
+    return { count: data.count || 0 };
+  }
+
+  async emptyTrash(): Promise<{ result: boolean }> {
+    const { data } = await this.api.put('/collection/-99/clear');
+    return { result: data.result || false };
   }
 
   // Highlights
@@ -286,6 +339,11 @@ class RaindropService {
     }
   }
 
+  // Search
+  async search(params: SearchParams): Promise<{ items: Bookmark[]; count: number }> {
+    return this.getBookmarks(params);
+  }
+
   // Advanced search with filters
   async searchRaindrops(params: {
     search?: string;
@@ -319,11 +377,11 @@ class RaindropService {
     return data;
   }
 
-  // Add file upload functionality
-  async uploadFile(collectionId: string, file: File): Promise<any> {
+  // Upload file
+  async uploadFile(collectionId: number, file: any): Promise<Bookmark> {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('collectionId', collectionId);
+    formData.append('collectionId', collectionId.toString());
 
     const { data } = await this.api.put('/raindrop/file', formData, {
       headers: {
@@ -334,27 +392,29 @@ class RaindropService {
     return data.item;
   }
 
-  // Add reminder management functionality
-  async setReminder(raindropId: number, reminder: { date: string; note?: string }): Promise<any> {
+  // Reminder management
+  async setReminder(raindropId: number, reminder: { date: string; note?: string }): Promise<Bookmark> {
     const { data } = await this.api.put(`/raindrop/${raindropId}/reminder`, reminder);
     return data.item;
   }
 
+  async deleteReminder(raindropId: number): Promise<Bookmark> {
+    const { data } = await this.api.delete(`/raindrop/${raindropId}/reminder`);
+    return data.item;
+  }
+
   // Import functionality
-  async importBookmarks(options: {
-    collection?: number;
-    format: 'html' | 'csv' | 'pocket' | 'instapaper' | 'netscape' | 'readwise';
-    file: any;
+  async importBookmarks(collectionId: number, file: any, options: {
+    format?: 'html' | 'csv' | 'pocket' | 'instapaper' | 'netscape' | 'readwise';
     mode?: 'add' | 'replace';
-  }): Promise<{ imported: number; duplicates: number }> {
+  } = {}): Promise<{ imported: number; duplicates: number }> {
     const formData = new FormData();
+    formData.append('collection', collectionId.toString());
+    formData.append('file', file);
     
-    if (options.collection) {
-      formData.append('collection', options.collection.toString());
+    if (options.format) {
+      formData.append('format', options.format);
     }
-    
-    formData.append('format', options.format);
-    formData.append('file', options.file);
     
     if (options.mode) {
       formData.append('mode', options.mode);

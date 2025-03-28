@@ -13,6 +13,16 @@ export const raindropController = {
     }
   },
 
+  async getChildCollections(req: Request, res: Response) {
+    try {
+      const { id } = req.params as { id: string };
+      const collections = await raindropService.getChildCollections(Number(id));
+      res.json({ collections });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch child collections' });
+    }
+  },
+
   async createCollection(req: Request, res: Response) {
     try {
       const { title, isPublic } = req.body as { title: string; isPublic?: boolean };
@@ -40,6 +50,20 @@ export const raindropController = {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete collection' });
+    }
+  },
+
+  async shareCollection(req: Request, res: Response) {
+    try {
+      const { id } = req.params as { id: string };
+      const { level, emails } = req.body as { 
+        level: 'view' | 'edit' | 'remove'; 
+        emails?: string[] 
+      };
+      const result = await raindropService.shareCollection(Number(id), level, emails);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to share collection' });
     }
   },
 
@@ -93,6 +117,36 @@ export const raindropController = {
     }
   },
 
+  async permanentDeleteBookmark(req: Request, res: Response) {
+    try {
+      const { id } = req.params as { id: string };
+      await raindropService.permanentDeleteBookmark(Number(id));
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to permanently delete bookmark' });
+    }
+  },
+
+  async importBookmarks(req: Request, res: Response) {
+    try {
+      const { collectionId, file } = req.body as { collectionId: number; file: string };
+      const result = await raindropService.importBookmarks(collectionId, file);
+      res.status(202).json(result);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to import bookmarks' });
+    }
+  },
+
+  async batchUpdateBookmarks(req: Request, res: Response) {
+    try {
+      const { ids, ...updates } = req.body as { ids: number[]; [key: string]: any };
+      const result = await raindropService.batchUpdateBookmarks(ids, updates);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update bookmarks in batch' });
+    }
+  },
+
   // Tags
   async getTags(_req: Request, res: Response) {
     try {
@@ -103,6 +157,16 @@ export const raindropController = {
     }
   },
 
+  async getTagsByCollection(req: Request, res: Response) {
+    try {
+      const { collectionId } = req.params as { collectionId: string };
+      const tags = await raindropService.getTagsByCollection(Number(collectionId));
+      res.json({ tags });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch collection tags' });
+    }
+  },
+
   // User
   async getUserInfo(_req: Request, res: Response) {
     try {
@@ -110,6 +174,18 @@ export const raindropController = {
       res.json({ user });
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch user info' });
+    }
+  },
+
+  async getUserStats(req: Request, res: Response) {
+    try {
+      const { collectionId } = req.query as { collectionId?: string };
+      const stats = collectionId 
+        ? await raindropService.getCollectionStats(Number(collectionId))
+        : await raindropService.getUserStats();
+      res.json({ stats });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch user stats' });
     }
   },
 
@@ -159,6 +235,16 @@ export const raindropController = {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete highlight' });
+    }
+  },
+  
+  // Search
+  async search(req: Request, res: Response) {
+    try {
+      const searchResults = await raindropService.search(req.query as unknown as SearchParams);
+      res.json(searchResults);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to search bookmarks' });
     }
   }
 };

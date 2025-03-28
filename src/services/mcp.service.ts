@@ -78,6 +78,207 @@ export class RaindropMCPService {
     );
 
     this.server.tool(
+      'getChildCollections',
+      'Get child collections of a parent collection',
+      {
+        parentId: z.number().describe('Parent Collection ID')
+      },
+      async ({ parentId }) => {
+        try {
+          const collections = await raindropService.getChildCollections(parentId);
+          return {
+            content: collections.map(collection => ({
+              type: "text",
+              text: collection.title,
+              metadata: {
+                id: collection._id,
+                count: collection.count,
+                public: collection.public,
+                created: collection.created,
+                lastUpdate: collection.lastUpdate
+              }
+            }))
+          };
+        } catch (error) {
+          throw new Error(`Failed to get child collections: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'createCollection',
+      'Create a new collection',
+      {
+        title: z.string().describe('Collection title'),
+        isPublic: z.boolean().optional().describe('Whether the collection is public')
+      },
+      async ({ title, isPublic }) => {
+        try {
+          const collection = await raindropService.createCollection(title, isPublic);
+          return {
+            content: [{
+              type: "text",
+              text: collection.title,
+              metadata: {
+                id: collection._id,
+                count: collection.count,
+                public: collection.public
+              }
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to create collection: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'updateCollection',
+      'Update an existing collection',
+      {
+        id: z.number().describe('Collection ID'),
+        title: z.string().optional().describe('New title'),
+        isPublic: z.boolean().optional().describe('Whether the collection is public'),
+        view: z.enum(['list', 'simple', 'grid', 'masonry']).optional().describe('View type'),
+        sort: z.enum(['title', '-created']).optional().describe('Sort order')
+      },
+      async ({ id, ...updates }) => {
+        try {
+          // Convert isPublic to 'public' key expected by API
+          const apiUpdates: Record<string, any> = { ...updates };
+          if ('isPublic' in updates) {
+            apiUpdates.public = updates.isPublic;
+            delete apiUpdates.isPublic;
+          }
+          
+          const collection = await raindropService.updateCollection(id, apiUpdates);
+          return {
+            content: [{
+              type: "text",
+              text: collection.title,
+              metadata: {
+                id: collection._id,
+                count: collection.count,
+                public: collection.public
+              }
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to update collection: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'deleteCollection',
+      'Delete a collection',
+      {
+        id: z.number().describe('Collection ID')
+      },
+      async ({ id }) => {
+        try {
+          await raindropService.deleteCollection(id);
+          return {
+            content: [{
+              type: "text",
+              text: `Collection ${id} successfully deleted.`
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to delete collection: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'shareCollection',
+      'Share a collection with others',
+      {
+        id: z.number().describe('Collection ID'),
+        level: z.enum(['view', 'edit', 'remove']).describe('Access level'),
+        emails: z.array(z.string().email()).optional().describe('Email addresses to share with')
+      },
+      async ({ id, level, emails }) => {
+        try {
+          const result = await raindropService.shareCollection(id, level, emails);
+          return {
+            content: [{
+              type: "text",
+              text: `Collection shared successfully. Public link: ${result.link}`,
+              metadata: {
+                link: result.link,
+                accessCount: result.access?.length || 0
+              }
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to share collection: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'mergeCollections',
+      'Merge multiple collections into one target collection',
+      {
+        targetId: z.number().describe('Target Collection ID'),
+        sourceIds: z.array(z.number()).describe('Source Collection IDs to merge')
+      },
+      async ({ targetId, sourceIds }) => {
+        try {
+          await raindropService.mergeCollections(targetId, sourceIds);
+          return {
+            content: [{
+              type: "text",
+              text: `Successfully merged ${sourceIds.length} collections into collection ${targetId}.`
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to merge collections: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'removeEmptyCollections',
+      'Remove all empty collections',
+      {},
+      async () => {
+        try {
+          const result = await raindropService.removeEmptyCollections();
+          return {
+            content: [{
+              type: "text",
+              text: `Removed ${result.count} empty collections.`
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to remove empty collections: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'emptyTrash',
+      'Empty the trash by permanently deleting all raindrops in it',
+      {},
+      async () => {
+        try {
+          await raindropService.emptyTrash();
+          return {
+            content: [{
+              type: "text",
+              text: `Trash emptied successfully.`
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to empty trash: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    // Bookmark operations
+    this.server.tool(
       'getBookmark',
       'Get a specific bookmark by ID',
       {
@@ -111,6 +312,135 @@ export class RaindropMCPService {
     );
 
     this.server.tool(
+      'getBookmarks',
+      'Get bookmarks with optional filtering',
+      {
+        collection: z.number().optional().describe('Collection ID'),
+        search: z.string().optional().describe('Search query'),
+        tags: z.array(z.string()).optional().describe('Filter by tags'),
+        page: z.number().optional().describe('Page number'),
+        perPage: z.number().optional().describe('Items per page (max 50)'),
+        sort: z.enum(['title', '-title', 'domain', '-domain', 'created', '-created', 'lastUpdate', '-lastUpdate'])
+          .optional()
+          .describe('Sort order')
+      },
+      async (params) => {
+        try {
+          const result = await raindropService.getBookmarks(params);
+          return {
+            content: result.items.map(bookmark => ({
+              type: "resource",
+              resource: {
+                text: bookmark.title || "Untitled Bookmark",
+                uri: bookmark.link,
+                metadata: {
+                  id: bookmark._id,
+                  excerpt: bookmark.excerpt,
+                  tags: bookmark.tags,
+                  collectionId: bookmark.collection?.$id,
+                  created: bookmark.created,
+                  lastUpdate: bookmark.lastUpdate,
+                  type: bookmark.type
+                }
+              }
+            })),
+            metadata: {
+              total: result.count,
+              page: params.page || 0
+            }
+          };
+        } catch (error) {
+          throw new Error(`Failed to get bookmarks: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'searchBookmarks',
+      'Search bookmarks with advanced filters',
+      {
+        search: z.string().optional().describe('Search query'),
+        collection: z.number().optional().describe('Collection ID'),
+        tags: z.array(z.string()).optional().describe('Filter by tags'),
+        createdStart: z.string().optional().describe('Created after date (ISO format)'),
+        createdEnd: z.string().optional().describe('Created before date (ISO format)'),
+        important: z.boolean().optional().describe('Only important bookmarks'),
+        media: z.enum(['image', 'video', 'document', 'audio']).optional().describe('Media type filter'),
+        page: z.number().optional().describe('Page number'),
+        perPage: z.number().optional().describe('Items per page (max 50)'),
+        sort: z.string().optional().describe('Sort order (e.g., "title", "-created")')
+      },
+      async (params) => {
+        try {
+          const result = await raindropService.searchRaindrops(params);
+          return {
+            content: result.items.map(bookmark => ({
+              type: "resource",
+              resource: {
+                text: bookmark.title || "Untitled Bookmark",
+                uri: bookmark.link,
+                metadata: {
+                  id: bookmark._id,
+                  excerpt: bookmark.excerpt,
+                  tags: bookmark.tags,
+                  collectionId: bookmark.collection?.$id,
+                  created: bookmark.created,
+                  lastUpdate: bookmark.lastUpdate,
+                  type: bookmark.type,
+                  important: bookmark.important
+                }
+              }
+            })),
+            metadata: {
+              total: result.count,
+              page: params.page || 0
+            }
+          };
+        } catch (error) {
+          throw new Error(`Failed to search bookmarks: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'createBookmark',
+      'Create a new bookmark',
+      {
+        link: z.string().url().describe('URL of the bookmark'),
+        collectionId: z.number().describe('Collection ID'),
+        title: z.string().optional().describe('Title of the bookmark'),
+        excerpt: z.string().optional().describe('Short description'),
+        tags: z.array(z.string()).optional().describe('List of tags'),
+        important: z.boolean().optional().describe('Mark as important')
+      },
+      async ({ collectionId, ...data }) => {
+        try {
+          const bookmark = await raindropService.createBookmark(collectionId, data);
+          return {
+            content: [{
+              type: "resource",
+              resource: {
+                text: bookmark.title || "Untitled Bookmark",
+                uri: bookmark.link,
+                metadata: {
+                  id: bookmark._id,
+                  excerpt: bookmark.excerpt,
+                  tags: bookmark.tags,
+                  collectionId: bookmark.collection?.$id,
+                  created: bookmark.created,
+                  lastUpdate: bookmark.lastUpdate,
+                  type: bookmark.type
+                }
+              }
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to create bookmark: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
       'updateBookmark',
       'Update an existing bookmark',
       {
@@ -118,11 +448,17 @@ export class RaindropMCPService {
         title: z.string().optional().describe('Title of the bookmark'),
         excerpt: z.string().optional().describe('Short excerpt or description'),
         tags: z.array(z.string()).optional().describe('List of tags'),
-        collectionId: z.number().optional().describe('Collection ID to move the bookmark to')
+        collectionId: z.number().optional().describe('Collection ID to move the bookmark to'),
+        important: z.boolean().optional().describe('Mark as important')
       },
-      async ({ id, ...updates }) => {
+      async ({ id, collectionId, ...updates }) => {
         try {
-          const updatedBookmark = await raindropService.updateBookmark(id, updates);
+          const apiUpdates: Record<string, any> = { ...updates };
+          if (collectionId !== undefined) {
+            apiUpdates.collection = { $id: collectionId };
+          }
+          
+          const updatedBookmark = await raindropService.updateBookmark(id, apiUpdates);
           return {
             content: [{
               type: "resource",
@@ -143,6 +479,137 @@ export class RaindropMCPService {
           };
         } catch (error) {
           throw new Error(`Failed to update bookmark: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'deleteBookmark',
+      'Delete a bookmark',
+      {
+        id: z.number().describe('Bookmark ID'),
+        permanent: z.boolean().optional().describe('Permanently delete (skip trash)')
+      },
+      async ({ id, permanent }) => {
+        try {
+          if (permanent) {
+            await raindropService.permanentDeleteBookmark(id);
+          } else {
+            await raindropService.deleteBookmark(id);
+          }
+          
+          return {
+            content: [{
+              type: "text",
+              text: `Bookmark ${id} successfully ${permanent ? 'permanently ' : ''}deleted.`
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to delete bookmark: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'batchUpdateBookmarks',
+      'Update multiple bookmarks at once',
+      {
+        ids: z.array(z.number()).describe('List of bookmark IDs'),
+        tags: z.array(z.string()).optional().describe('Tags to apply to all bookmarks'),
+        collectionId: z.number().optional().describe('Collection ID to move bookmarks to'),
+        important: z.boolean().optional().describe('Mark as important')
+      },
+      async ({ ids, collectionId, ...updates }) => {
+        try {
+          const apiUpdates: Record<string, any> = { ...updates };
+          
+          if (collectionId !== undefined) {
+            apiUpdates.collection = collectionId;
+          }
+          
+          await raindropService.batchUpdateBookmarks(ids, apiUpdates);
+          return {
+            content: [{
+              type: "text",
+              text: `Successfully updated ${ids.length} bookmarks.`
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to batch update bookmarks: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'setReminder',
+      'Set a reminder for a bookmark',
+      {
+        raindropId: z.number().describe('Bookmark ID'),
+        date: z.string().describe('Reminder date (ISO format)'),
+        note: z.string().optional().describe('Reminder note')
+      },
+      async ({ raindropId, date, note }) => {
+        try {
+          const bookmark = await raindropService.setReminder(raindropId, { date, note });
+          return {
+            content: [{
+              type: "text",
+              text: `Reminder set for "${bookmark.title || 'Untitled'}" on ${date}`,
+              metadata: {
+                bookmarkId: bookmark._id,
+                reminderDate: date,
+                reminderNote: note
+              }
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to set reminder: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'deleteReminder',
+      'Delete a reminder from a bookmark',
+      {
+        raindropId: z.number().describe('Bookmark ID')
+      },
+      async ({ raindropId }) => {
+        try {
+          await raindropService.deleteReminder(raindropId);
+          return {
+            content: [{
+              type: "text",
+              text: `Reminder successfully removed from bookmark ${raindropId}.`
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to delete reminder: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    // Tag operations
+    this.server.tool(
+      'getTags',
+      'Get all tags',
+      {
+        collectionId: z.number().optional().describe('Filter tags by collection')
+      },
+      async ({ collectionId }) => {
+        try {
+          const tags = await raindropService.getTags(collectionId);
+          return {
+            content: tags.map(tag => ({
+              type: "text",
+              text: tag._id,
+              metadata: {
+                count: tag.count
+              }
+            }))
+          };
+        } catch (error) {
+          throw new Error(`Failed to get tags: ${(error as Error).message}`);
         }
       }
     );
@@ -188,6 +655,266 @@ export class RaindropMCPService {
           };
         } catch (error) {
           throw new Error(`Failed to delete tags: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    // Highlights operations
+    this.server.tool(
+      'getHighlights',
+      'Get highlights for a specific bookmark',
+      {
+        raindropId: z.number().describe('Bookmark ID')
+      },
+      async ({ raindropId }) => {
+        try {
+          const highlights = await raindropService.getHighlights(raindropId);
+          return {
+            content: highlights.map(highlight => ({
+              type: "text",
+              text: highlight.text,
+              metadata: {
+                id: highlight._id,
+                raindropId: highlight.raindrop?._id,
+                note: highlight.note,
+                color: highlight.color,
+                created: highlight.created
+              }
+            }))
+          };
+        } catch (error) {
+          throw new Error(`Failed to get highlights: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'getAllHighlights',
+      'Get all highlights across all bookmarks',
+      {},
+      async () => {
+        try {
+          const highlights = await raindropService.getAllHighlights();
+          return {
+            content: highlights.map(highlight => ({
+              type: "text",
+              text: highlight.text,
+              metadata: {
+                id: highlight._id,
+                raindropId: highlight.raindrop?._id,
+                note: highlight.note,
+                color: highlight.color,
+                created: highlight.created
+              }
+            }))
+          };
+        } catch (error) {
+          throw new Error(`Failed to get all highlights: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'createHighlight',
+      'Create a new highlight for a bookmark',
+      {
+        raindropId: z.number().describe('Bookmark ID'),
+        text: z.string().describe('Highlighted text'),
+        note: z.string().optional().describe('Additional note for the highlight'),
+        color: z.string().optional().describe('Color for the highlight (e.g., "yellow", "#FFFF00")')
+      },
+      async ({ raindropId, text, note, color }) => {
+        try {
+          const highlight = await raindropService.createHighlight(raindropId, { text, note, color });
+          return {
+            content: [{
+              type: "text",
+              text: highlight.text,
+              metadata: {
+                id: highlight._id,
+                raindropId: highlight.raindrop?._id,
+                note: highlight.note,
+                color: highlight.color,
+                created: highlight.created
+              }
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to create highlight: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'updateHighlight',
+      'Update an existing highlight',
+      {
+        id: z.number().describe('Highlight ID'),
+        text: z.string().optional().describe('New highlighted text'),
+        note: z.string().optional().describe('New note'),
+        color: z.string().optional().describe('New color')
+      },
+      async ({ id, text, note, color }) => {
+        try {
+          const highlight = await raindropService.updateHighlight(id, { text, note, color });
+          return {
+            content: [{
+              type: "text",
+              text: highlight.text,
+              metadata: {
+                id: highlight._id,
+                raindropId: highlight.raindrop?._id,
+                note: highlight.note,
+                color: highlight.color,
+                lastUpdate: highlight.lastUpdate
+              }
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to update highlight: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'deleteHighlight',
+      'Delete a highlight',
+      {
+        id: z.number().describe('Highlight ID')
+      },
+      async ({ id }) => {
+        try {
+          await raindropService.deleteHighlight(id);
+          return {
+            content: [{
+              type: "text",
+              text: `Highlight ${id} successfully deleted.`
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to delete highlight: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    // User operations
+    this.server.tool(
+      'getUserInfo',
+      'Get user information',
+      {},
+      async () => {
+        try {
+          const user = await raindropService.getUserInfo();
+          return {
+            content: [{
+              type: "text",
+              text: `User: ${user.fullName || user.email}`,
+              metadata: {
+                id: user._id,
+                email: user.email,
+                fullName: user.fullName,
+                pro: user.pro,
+                registered: user.registered
+              }
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to get user info: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'getUserStats',
+      'Get user statistics',
+      {
+        collectionId: z.number().optional().describe('Collection ID for specific collection stats')
+      },
+      async ({ collectionId }) => {
+        try {
+          const stats = collectionId 
+            ? await raindropService.getCollectionStats(collectionId)
+            : await raindropService.getUserStats();
+          
+          return {
+            content: [{
+              type: "text",
+              text: collectionId 
+                ? `Stats for collection ${collectionId}`
+                : `User Statistics`,
+              metadata: stats
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to get stats: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    // Import/Export operations
+    this.server.tool(
+      'getImportStatus',
+      'Check the status of an ongoing import',
+      {},
+      async () => {
+        try {
+          const status = await raindropService.getImportStatus();
+          return {
+            content: [{
+              type: "text",
+              text: `Import status: ${status.status}`,
+              metadata: status
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to get import status: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'getExportStatus',
+      'Check the status of an ongoing export',
+      {},
+      async () => {
+        try {
+          const status = await raindropService.getExportStatus();
+          return {
+            content: [{
+              type: "text",
+              text: `Export status: ${status.status}${status.url ? `. Download URL: ${status.url}` : ''}`,
+              metadata: status
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to get export status: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'exportBookmarks',
+      'Export bookmarks in various formats',
+      {
+        format: z.enum(['csv', 'html', 'pdf']).describe('Export format'),
+        collectionId: z.number().optional().describe('Export specific collection'),
+        broken: z.boolean().optional().describe('Include broken links'),
+        duplicates: z.boolean().optional().describe('Include duplicates')
+      },
+      async (options) => {
+        try {
+          const result = await raindropService.exportBookmarks(options);
+          return {
+            content: [{
+              type: "text",
+              text: `Export started successfully. Status URL: ${result.url}`,
+              metadata: {
+                url: result.url
+              }
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to start export: ${(error as Error).message}`);
         }
       }
     );

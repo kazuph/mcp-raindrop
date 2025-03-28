@@ -1,91 +1,181 @@
-// Define types for Raindrop.io API
+// Raindrop.io types
 
-// https://developer.raindrop.io/v1/collections
-export interface Collection {
+export type User = {
+  _id: number;
+  email: string;
+  fullName?: string;
+  pro: boolean;
+  registered: string;
+  config?: {
+    broken_level: 'basic' | 'default' | 'strict';
+    font_color: boolean;
+    font_size: number;
+    lang: string;
+    last_collection: number;
+    raindrops_sort: string;
+    raindrops_view: string;
+  };
+};
+
+export type Collection = {
   _id: number;
   title: string;
-  access?: {
-    level?: number;
-    draggable?: boolean;
-    collaborators?: string[];
-  };
-  sort?: number;
-  expanded?: boolean;
+  description?: string;
   color?: string;
-  cover?: string;
-  count?: number;
-  view?: 'list' | 'simple' | 'grid' | 'masonry' | 'magazine';
   public?: boolean;
-  user?: { $id: number };
-  created: string;  // Changed to non-optional as it's always present in API responses
-  lastUpdate?: string;  // Matches Raindrop.io API field name
+  view: 'list' | 'simple' | 'grid' | 'masonry';
+  sort: string;
+  cover?: string[];
+  count: number;
+  expanded?: boolean;
+  parent?: {
+    $id: number;
+    title?: string;
+  };
+  user: {
+    $id: number;
+  };
+  created: string;
+  lastUpdate: string;
   creatorRef?: {
     _id: number;
     name: string;
   };
-}
+  collaborators?: {
+    _id: number;
+    email: string;
+    name?: string;
+    role: 'owner' | 'viewer' | 'editor';
+  }[];
+};
 
-// https://developer.raindrop.io/v1/raindrops/single
-export interface Bookmark {
+export type Media = {
+  link: string;
+  type: 'image' | 'video' | 'audio' | 'pdf' | 'doc';
+  width?: number;
+  height?: number;
+};
+
+export type Bookmark = {
   _id: number;
   title: string;
   excerpt?: string;
-  description?: string;
+  note?: string;
+  type: 'link' | 'article' | 'image' | 'video' | 'document' | 'audio';
+  tags: string[];
+  cover?: string;
   link: string;
+  domain: string;
   created: string;
   lastUpdate: string;
-  tags?: string[];
-  type?: 'link' | 'article' | 'image' | 'video' | 'document' | 'audio';
-  cover?: string;
-  collection?: { $id: number };
-  user?: { $id: number };
-  domain?: string;
-  important?: boolean;
-  media?: 'image' | 'video' | 'audio' | 'document' | 'pdf';
-  pleaseParse?: boolean;
-  creator?: {
-    name?: string;
-    url?: string;
+  removed: boolean;
+  media?: Media[];
+  user: {
+    $id: number;
   };
-  broken?: boolean;
-  cache?: {
-    status?: string;
-    size?: number;
+  collection: {
+    $id: number;
   };
   html?: string;
+  important: boolean;
   highlights?: Highlight[];
-}
-// https://developer.raindrop.io/v1/highlights
-export interface Highlight {
+  reminder?: {
+    date: string;
+    note?: string;
+  };
+  broken?: boolean;
+  duplicate?: boolean;
+  sort?: number;
+  cache?: {
+    status: 'ready' | 'retry' | 'failed' | 'invalid-origin' | 'invalid-timeout';
+    size: number;
+    created: string;
+  };
+};
+
+export type Highlight = {
   _id: number;
   text: string;
-  color?: string;
   note?: string;
+  color?: string;
   created: string;
-  lastUpdate: string;
-  raindrop: {
-    $id: number;
+  lastUpdate?: string;
+  raindrop?: {
+    _id: number;
     title?: string;
     link?: string;
   };
-}
+};
 
-export interface SearchParams {
-  collection?: number;
+export type SearchParams = {
   search?: string;
+  collection?: number;
   tags?: string[];
-  sort?: "-created" | "created" | "-title" | "title" | undefined; // Updated to match service expectations
   page?: number;
   perPage?: number;
-  since?: Date;
+  sort?: string;
   important?: boolean;
-  media?: string;
-  createdStart?: string;
-  createdEnd?: string;
-}
+  media?: 'image' | 'video' | 'document' | 'audio';
+  word?: string;
+  pleaseParse?: boolean;
+  noparse?: boolean;
+  since?: string; // ISO string date to filter bookmarks created/updated since this time
+  created?: {
+    $gte?: string;
+    $lte?: string;
+  };
+};
 
-// https://developer.raindrop.io/v1/raindrops/multiple
-export interface BookmarkResult {
-  items: Bookmark[];
+export type UserStats = {
   count: number;
-}
+  lastBookmarkCreated: string;
+  lastBookmarkUpdated: string;
+  today: number;
+  tags: number;
+  collections: number;
+};
+
+export type CollectionStats = {
+  count: number;
+  lastBookmarkCreated: string;
+  lastBookmarkUpdated: string;
+  oldest: {
+    id: number;
+    created: string;
+    title: string;
+    link: string;
+  };
+  newest: {
+    id: number;
+    created: string;
+    title: string;
+    link: string;
+  };
+};
+
+export type ImportOptions = {
+  format?: 'html' | 'csv' | 'pocket' | 'instapaper' | 'netscape' | 'readwise';
+  mode?: 'add' | 'replace';
+};
+
+export type ImportStatus = {
+  status: 'in-progress' | 'ready' | 'error';
+  progress?: number;
+  imported?: number;
+  duplicates?: number;
+  error?: string;
+};
+
+export type ExportOptions = {
+  collection?: number;
+  format: 'csv' | 'html' | 'pdf';
+  broken?: boolean;
+  duplicates?: boolean;
+};
+
+export type ExportStatus = {
+  status: 'in-progress' | 'ready' | 'error';
+  progress?: number;
+  url?: string;
+  error?: string;
+};

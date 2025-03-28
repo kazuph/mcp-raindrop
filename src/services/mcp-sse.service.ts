@@ -116,7 +116,8 @@ function setupEventStreams(server: McpServer, activeIntervals: NodeJS.Timeout[],
                 const updatedParams: SearchParams = { 
                   search, 
                   collection: collection ? Number(collection) : undefined,
-                  since: new Date(Date.now() - 60000) 
+                  // Explicitly cast as SearchParams property
+                  since: new Date(Date.now() - 60000).toISOString() 
                 };
                 
                 const updatedBookmarks = await raindropClient.getBookmarks(updatedParams);
