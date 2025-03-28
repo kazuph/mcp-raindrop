@@ -1,12 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import express from "express";
+import express, { Express, Request, Response } from "express";
 import { z } from "zod";
 import raindropClient from './raindrop.service.js';
 import type { SearchParams } from '../types/raindrop.js';
 
-export const createSSEServer = () => {
+export const createSSEServer = (app: Express) => {
   // Tracking intervals and streams for proper cleanup
   let activeIntervals: NodeJS.Timeout[] = [];
   let activeStreams: Set<{ isActive: boolean }> = new Set();
@@ -34,7 +33,6 @@ export const createSSEServer = () => {
       stream.isActive = false;
     });
     activeStreams.clear();
-    
   };
   
   return { server, cleanup };
@@ -200,18 +198,42 @@ function setupEventStreams(server: McpServer, activeIntervals: NodeJS.Timeout[],
 export class MCPSSEService {
   private server: McpServer | null = null;
   private cleanup: (() => Promise<void>) | null = null;
+  private app: Express;
+  private serverInstance: any = null;
   
-  constructor() {
-    // Defer initialization until start is called
+  constructor(app?: Express) {
+    // Create a new Express app if none provided
+    this.app = app || express();
+    
+    // Add health check endpoint
+    this.app.get('/health', (req: Request, res: Response) => {
+      res.status(200).json({ status: 'ok' });
+    });
   }
   
-  public async start() {
-    const { server, cleanup } = createSSEServer();
+  public async start(port: number = 3001) {
+    // Create server
+    const { server, cleanup } = createSSEServer(this.app);
     this.server = server;
     this.cleanup = cleanup;
     
-    const transport = new SSEServerTransport("/message",);
+    // Create SSE transport and mount it to Express
+    const transport = new SSEServerTransport();
+    transport.mount(this.app, "/message");
+    
+    // Connect MCP server to transport
     await server.connect(transport);
+    
+    // Start HTTP server
+    return new Promise<void>((resolve) => {
+      this.serverInstance = this.app.listen(port, () => {
+        // Using process.stderr.write instead of console.log to avoid STDIO issues
+        if (process.env.NODE_ENV === 'development') {
+          process.stderr.write(`Server is running on port ${port}\n`);
+        }
+        resolve();
+      });
+    });
   }
   
   public async stop() {
@@ -222,12 +244,17 @@ export class MCPSSEService {
     if (this.server) {
       await this.server.close();
     }
+    
+    if (this.serverInstance) {
+      return new Promise<void>((resolve, reject) => {
+        this.serverInstance.close((err: Error) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    }
   }
 }
 
+// Export a singleton instance
 export const mcpSSEService = new MCPSSEService();
-const app = express();
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
