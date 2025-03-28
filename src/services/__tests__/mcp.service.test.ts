@@ -31,12 +31,13 @@ vi.mock('../raindrop.service.js', () => ({
 
 describe('RaindropMCPService', () => {
   let service: RaindropMCPService;
-  let mockServer: ReturnType<typeof McpServer>;
+  let mockServer: InstanceType<typeof McpServer>;
   
   beforeEach(() => {
     vi.clearAllMocks();
     service = new RaindropMCPService();
-    mockServer = (McpServer as unknown as Mock).mock.results[0].value;
+    // Access the instance created by the mocked constructor
+    mockServer = (McpServer as Mock).mock.results[0].value;
   });
 
   test('constructor initializes with correct configuration', () => {
