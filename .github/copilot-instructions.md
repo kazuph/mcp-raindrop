@@ -7,3 +7,5 @@ STDIO for local servers does not like console.log so don't include it.
 [MCP Debugging Instructions](https://modelcontextprotocol.io/docs/tools/debugging)
 I am using the [Inspeector](https://modelcontextprotocol.io/docs/tools/inspector) and https://github.com/modelcontextprotocol/inspector is the repository for it.
 ensure API coverage is complete. 
+i use vitest for testing
+

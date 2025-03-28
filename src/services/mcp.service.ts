@@ -23,13 +23,13 @@ export class RaindropMCPService {
 
   private initializeTools() {
     // Collection operations
-    this.server.registerTool({
-      name: 'getCollection',
-      description: 'Get a specific collection by ID',
-      parameters: z.object({
+    this.server.tool(
+      'getCollection',
+      'Get a specific collection by ID',
+      {
         id: z.number().describe('Collection ID')
-      }),
-      execute: async ({ id }: { id: number }) => {
+      },
+      async ({ id }) => {
         try {
           const collection = await raindropService.getCollection(id);
           return {
@@ -48,15 +48,14 @@ export class RaindropMCPService {
         } catch (error) {
           throw new Error(`Failed to get collection: ${(error as Error).message}`);
         }
-      },
-      visibility: 'public'
-    });
+      }
+    );
 
-    this.server.registerTool({
-      name: 'getCollections',
-      description: 'Get all collections',
-      parameters: z.object({}),
-      execute: async () => {
+    this.server.tool(
+      'getCollections',
+      'Get all collections',
+      {},
+      async () => {
         try {
           const collections = await raindropService.getCollections();
           return {
@@ -75,17 +74,16 @@ export class RaindropMCPService {
         } catch (error) {
           throw new Error(`Failed to get collections: ${(error as Error).message}`);
         }
-      },
-      visibility: 'public'
-    });
+      }
+    );
 
-    this.server.registerTool({
-      name: 'getBookmark',
-      description: 'Get a specific bookmark by ID',
-      parameters: z.object({
+    this.server.tool(
+      'getBookmark',
+      'Get a specific bookmark by ID',
+      {
         id: z.number().describe('Bookmark ID')
-      }),
-      execute: async ({ id }: { id: number }) => {
+      },
+      async ({ id }) => {
         try {
           const bookmark = await raindropService.getBookmark(id);
           return {
@@ -109,21 +107,20 @@ export class RaindropMCPService {
         } catch (error) {
           throw new Error(`Failed to get bookmark: ${(error as Error).message}`);
         }
-      },
-      visibility: 'public'
-    });
+      }
+    );
 
-    this.server.registerTool({
-      name: 'updateBookmark',
-      description: 'Update an existing bookmark',
-      parameters: z.object({
+    this.server.tool(
+      'updateBookmark',
+      'Update an existing bookmark',
+      {
         id: z.number().describe('Bookmark ID'),
         title: z.string().optional().describe('Title of the bookmark'),
         excerpt: z.string().optional().describe('Short excerpt or description'),
         tags: z.array(z.string()).optional().describe('List of tags'),
         collectionId: z.number().optional().describe('Collection ID to move the bookmark to')
-      }),
-      execute: async ({ id, ...updates }: { id: number; title?: string; excerpt?: string; tags?: string[]; collectionId?: number }) => {
+      },
+      async ({ id, ...updates }) => {
         try {
           const updatedBookmark = await raindropService.updateBookmark(id, updates);
           return {
@@ -147,20 +144,20 @@ export class RaindropMCPService {
         } catch (error) {
           throw new Error(`Failed to update bookmark: ${(error as Error).message}`);
         }
-      },
-      visibility: 'public'
-    });
+      }
+    );
 
-    this.server.registerTool({
-      name: 'mergeTags',
-      description: 'Merge multiple tags into one destination tag',
-      parameters: z.object({
+    this.server.tool(
+      'mergeTags',
+      'Merge multiple tags into one destination tag',
+      {
         sourceTags: z.array(z.string()).describe('List of source tags to merge'),
-        destinationTag: z.string().describe('Destination tag name')
-      }),
-      execute: async ({ sourceTags, destinationTag }: { sourceTags: string[]; destinationTag: string }) => {
+        destinationTag: z.string().describe('Destination tag name'),
+        collectionId: z.number().optional().describe('Collection ID (optional)')
+      },
+      async ({ sourceTags, destinationTag, collectionId }) => {
         try {
-          await raindropService.mergeTags(sourceTags, destinationTag);
+          await raindropService.mergeTags(collectionId, sourceTags, destinationTag);
           return {
             content: [{
               type: "text",
@@ -170,19 +167,19 @@ export class RaindropMCPService {
         } catch (error) {
           throw new Error(`Failed to merge tags: ${(error as Error).message}`);
         }
-      },
-      visibility: 'public'
-    });
+      }
+    );
 
-    this.server.registerTool({
-      name: 'deleteTags',
-      description: 'Delete tags from all bookmarks',
-      parameters: z.object({
-        tags: z.array(z.string()).describe('List of tags to delete')
-      }),
-      execute: async ({ tags }: { tags: string[] }) => {
+    this.server.tool(
+      'deleteTags',
+      'Delete tags from all bookmarks',
+      {
+        tags: z.array(z.string()).describe('List of tags to delete'),
+        collectionId: z.number().optional().describe('Collection ID (optional)')
+      },
+      async ({ tags, collectionId }) => {
         try {
-          await raindropService.deleteTags(tags);
+          await raindropService.deleteTags(collectionId, tags);
           return {
             content: [{
               type: "text",
@@ -192,9 +189,8 @@ export class RaindropMCPService {
         } catch (error) {
           throw new Error(`Failed to delete tags: ${(error as Error).message}`);
         }
-      },
-      visibility: 'public'
-    });
+      }
+    );
   }
 
   async start() {
@@ -208,7 +204,6 @@ export class RaindropMCPService {
   }
 }
 
-// Create singleton and export factory function
 export function createRaindropServer() {
   const service = new RaindropMCPService();
   return { 
