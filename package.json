@@ -7,26 +7,23 @@
         "dev": "bun --watch src/index.ts",
         "inspector": "npx @modelcontextprotocol/inspector bun run src/index.ts",
         "type-check": "tsc --noEmit",
-        "test": "node --loader vitest/vitest.mjs",
-        "test:coverage": "node --loader vitest/vitest.mjs run --coverage",
-        "run": "node -r dotenv/config build/index.js",
+        "test": "bun test",
+        "test:coverage": "bun test --coverage",
+        "run": "bun run build/index.js",
         "build": "bun build src/index.ts --outfile=build/index.js",
         "start": "bun run src/index.ts",
-        "debug": "npm run inspector",
+        "debug": "bun run inspector",
         "clean": "rm -rf build",
-        "prebuild": "npm run clean"
+        "prebuild": "bun run clean",
+        "start:http": "TRANSPORT_TYPE=http bun run src/index.ts",
+        "http": "TRANSPORT_TYPE=http bun run src/index.ts"
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.8.0",
-        "@types/jest": "^29.5.14",
         "axios": "^1.8.4",
-        "dotenv": "^16.4.7",
         "esm": "^3.2.25",
-        "fastmcp": "^1.20.5",
         "rate-limiter-flexible": "^6.2.1",
-        "zod": "^3.24.2",
-        "@types/express": "^5.0.1",
-        "express": "^4.21.2"
+        "zod": "^3.24.2"
     },
     "devDependencies": {
         "@types/bun": "latest",

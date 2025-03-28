@@ -1,35 +1,37 @@
 import { createRaindropServer } from './services/mcp.service.js';
-import { mcpSSEService } from './services/mcp-sse.service.js';
-import express from 'express';
+import { mcpHttpService } from './services/mcp-http.service.js';
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
-// To use SSE transport, you need to add express to dependencies
-// Make sure your package.json includes express as a regular dependency
-
-async function startServer() {
+async function main() {
   try {
-    const app = express();
-    // Configure app middleware if needed
-    
-    // Create service with your app or use the singleton
-    // await mcpSSEService.start(3001);
-    
-    // OR create a custom instance with your Express app
-    const customService = new MCPSSEService(app);
-    await customService.start(3001);
-    
-    // Handle graceful shutdown
-    const shutdown = async () => {
-      await customService.stop();
-      process.exit(0);
-    };
-    
-    process.on('SIGINT', shutdown);
-    process.on('SIGTERM', shutdown);
+    // For HTTP transport when explicitly configured
+    if (process.env.TRANSPORT_TYPE === 'http') {
+      await mcpHttpService.start(Number(process.env.PORT || 3001));
+      
+      // Handle graceful shutdown
+      const shutdown = async () => {
+        await mcpHttpService.stop();
+        process.exit(0);
+      };
+      
+      process.on('SIGINT', shutdown);
+      process.on('SIGTERM', shutdown);
+    } 
+    // Default to STDIO transport for Claude Desktop compatibility
+    else {
+      const { server } = createRaindropServer();
+      const transport = new StdioServerTransport();
+      
+      // Connect MCP server to transport
+      await server.connect(transport);
+      
+      // No need for explicit shutdown handling with STDIO
+      // Claude Desktop will handle this
+    }
   } catch (error) {
     process.stderr.write(`Failed to start server: ${error}\n`);
     process.exit(1);
   }
 }
 
-// Start the server
-startServer();
+main();

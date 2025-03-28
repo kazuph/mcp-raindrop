@@ -8,4 +8,5 @@ STDIO for local servers does not like console.log so don't include it.
 I am using the [Inspeector](https://modelcontextprotocol.io/docs/tools/inspector) and https://github.com/modelcontextprotocol/inspector is the repository for it.
 ensure API coverage is complete. 
 i use vitest for testing
+i am using bun for package management not npm
 
