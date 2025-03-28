@@ -1,5 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import express from "express";
 import { z } from "zod";
 import raindropClient from './raindrop.service.js';
 import type { SearchParams } from '../types/raindrop.js';
@@ -208,7 +210,7 @@ export class MCPSSEService {
     this.server = server;
     this.cleanup = cleanup;
     
-    const transport = new StdioServerTransport(process.stdin, process.stdout);
+    const transport = new SSEServerTransport("/message",);
     await server.connect(transport);
   }
   
@@ -224,3 +226,8 @@ export class MCPSSEService {
 }
 
 export const mcpSSEService = new MCPSSEService();
+const app = express();
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
