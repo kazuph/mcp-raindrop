@@ -19,7 +19,9 @@ async function main() {
     } 
     // Default to STDIO transport for Claude Desktop compatibility
     else {
-      const { server } = createRaindropServer();
+      // Await the creation of the server
+      // Assuming createRaindropServer returns Promise<McpServer> directly
+      const server = await createRaindropServer(); 
       const transport = new StdioServerTransport();
       
       // Connect MCP server to transport
@@ -29,7 +31,9 @@ async function main() {
       // Claude Desktop will handle this
     }
   } catch (error) {
-    process.stderr.write(`Failed to start server: ${error}\n`);
+    // Ensure error is a string or has a message property
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Failed to start server: ${errorMessage}\n`);
     process.exit(1);
   }
 }
