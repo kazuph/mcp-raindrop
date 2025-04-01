@@ -5,39 +5,10 @@ import type { SearchParams } from '../types/raindrop.js';
 import { createServer, Server } from 'http';
 import { createRaindropServer } from './mcp.service.js';
 import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
-
-export const createMCPHttpServer = () => {
-  // Tracking intervals and streams for proper cleanup
-  let activeIntervals: NodeJS.Timeout[] = [];
-  let activeStreams: Set<{ isActive: boolean }> = new Set();
-  
-  const server = new McpServer({
-    name: 'raindrop-mcp-http',
-    version: '1.0.0',
-    description: 'MCP HTTP Server for Raindrop.io bookmarking service',
-    capabilities: {
-      logging: true,
-      streaming: true
-    }
-  });
-  
-  setupEventStreams(server, activeIntervals, activeStreams);
-  
-  // Cleanup function to be returned from factory
-  const cleanup = async () => {
-    // Clear all intervals
-    activeIntervals.forEach(interval => clearInterval(interval));
-    activeIntervals = [];
-    
-    // Terminate all streams
-    activeStreams.forEach(stream => {
-      stream.isActive = false;
-    });
-    activeStreams.clear();
-  };
-  
-  return { server, cleanup };
-};
+// Attempt to import HttpTransport directly - remove .js extension
+import { HttpTransport } from "@modelcontextprotocol/sdk/server/sse.js"; 
+// Remove the unused createMCPHttpServer function if MCPHttpService is used directly
+// export const createMCPHttpServer = () => { ... };
 
 function setupEventStreams(server: McpServer, activeIntervals: NodeJS.Timeout[], activeStreams: Set<{ isActive: boolean }>) {
   // The stream tool implementation remains mostly unchanged
@@ -91,7 +62,7 @@ function setupEventStreams(server: McpServer, activeIntervals: NodeJS.Timeout[],
             let interval: NodeJS.Timeout;
             let lastCheckTime = Date.now(); // Track the time of the last check
 
-            // Handle uncaught errors
+            // Handle uncaught errors specific to this stream
             const handleError = (err: any) => {
               streamState.isActive = false;
               if (interval) {
@@ -101,13 +72,14 @@ function setupEventStreams(server: McpServer, activeIntervals: NodeJS.Timeout[],
                    activeIntervals.splice(index, 1);
                  }
               }
-              process.removeListener('uncaughtException', handleError);
+              // Removed global uncaughtException handler - handle errors locally
+              // process.removeListener('uncaughtException', handleError); 
               activeStreams.delete(streamState);
-              reject(err);
+              reject(err); // Reject the stream promise
             };
             
-            // Add global error handler
-            process.on('uncaughtException', handleError);
+            // Removed global uncaughtException listener - prefer local try/catch
+            // process.on('uncaughtException', handleError);
             
             // Poll for updates
             interval = setInterval(async () => {
@@ -117,7 +89,7 @@ function setupEventStreams(server: McpServer, activeIntervals: NodeJS.Timeout[],
                 if (index > -1) {
                   activeIntervals.splice(index, 1);
                 }
-                process.removeListener('uncaughtException', handleError);
+                // process.removeListener('uncaughtException', handleError); // Removed
                 resolve(undefined); // Resolve with undefined when stream ends normally
                 return;
               }
@@ -136,17 +108,7 @@ function setupEventStreams(server: McpServer, activeIntervals: NodeJS.Timeout[],
                 const updatedBookmarks = await raindropClient.getBookmarks(updatedParams);
                 
                 if (updatedBookmarks.items.length > 0) {
-                  // If we found new/updated bookmarks, return them
-                  // Note: The MCP SDK expects the stream promise to resolve with the *next* chunk,
-                  // not return it directly from the interval callback. We need to resolve the outer promise.
-                  // However, the current SDK design for streams might require a different approach
-                  // like yielding chunks. For polling, we might need to resolve and re-initiate.
-                  // This implementation assumes the client handles receiving chunks over time.
-                  // A more robust implementation might use WebSockets or SSE directly if the transport supports it.
-                  
-                  // For now, let's resolve the promise with the new content.
-                  // This might effectively end the stream after the first update in some client implementations.
-                  // A true continuous stream often requires a generator or observable pattern.
+                  // Resolve the stream promise with the new content chunk
                   resolve({
                     content: updatedBookmarks.items.map(bookmark => ({
                       type: "resource",
@@ -169,27 +131,28 @@ function setupEventStreams(server: McpServer, activeIntervals: NodeJS.Timeout[],
                       }
                     }))
                   });
-                  // Since we resolved, stop polling for this stream instance
+                  // Stop polling after sending the update chunk
                   streamState.isActive = false; 
                   clearInterval(interval);
                   const index = activeIntervals.indexOf(interval);
                   if (index > -1) {
                     activeIntervals.splice(index, 1);
                   }
-                  process.removeListener('uncaughtException', handleError);
+                  // process.removeListener('uncaughtException', handleError); // Removed
                   activeStreams.delete(streamState);
 
                 }
-                // If no updates, the interval continues polling.
+                // If no updates, the interval continues polling. The promise remains pending.
               } catch (error) {
-                handleError(error);
+                // Handle errors during polling
+                handleError(error); 
               }
             }, 30000); // Poll every 30 seconds
             
             // Add interval to the registry for cleanup
             activeIntervals.push(interval);
             
-            // Listen for client disconnection
+            // Listen for client disconnection (abort signal)
             extra.signal?.addEventListener('abort', () => {
               streamState.isActive = false;
               clearInterval(interval);
@@ -197,13 +160,14 @@ function setupEventStreams(server: McpServer, activeIntervals: NodeJS.Timeout[],
               if (index > -1) {
                 activeIntervals.splice(index, 1);
               }
-              process.removeListener('uncaughtException', handleError);
+              // process.removeListener('uncaughtException', handleError); // Removed
               activeStreams.delete(streamState);
               resolve(undefined); // Resolve with undefined when aborted
             });
           })
         };
       } catch (error) {
+        // Handle errors during initial setup
         streamState.isActive = false;
         activeStreams.delete(streamState);
         // Ensure the error is propagated correctly as an MCP error response
@@ -240,9 +204,8 @@ export class MCPHttpService {
   private httpServer: Server | null = null;
   
   public async start(port: number = 3001): Promise<void> {
-    // Create MCP server using the same configuration as STDIO transport
-    // We need the actual McpServer instance, not a promise
-    const { server, cleanup } = await createRaindropServer(); // Await the promise here
+    // Explicitly type the destructured result from createRaindropServer
+    const { server, cleanup }: { server: McpServer; cleanup: () => Promise<void> } = await createRaindropServer(); 
     this.server = server;
     this.cleanup = cleanup;
     
@@ -250,47 +213,39 @@ export class MCPHttpService {
     const httpServer = createServer();
     this.httpServer = httpServer;
     
-    // Import the HTTP transport dynamically to avoid import errors
-    // The import path differs between MCP SDK versions
-    let transport;
-    try {
-      // Try the newer import path first (MCP SDK 1.8+)
-      const { HttpTransport } = await import("@modelcontextprotocol/sdk/server/http.js");
-      transport = new HttpTransport({ httpServer, path: "/api" });
-    } catch (error) {
-      // Fall back to older import path
-      try {
-        // Assuming older path might be HttpServerTransport or similar
-        // Adjust the import path based on the actual older SDK structure if needed
-        const { HttpServerTransport } = await import("@modelcontextprotocol/sdk/server/transport.js"); 
-        transport = new HttpServerTransport(httpServer, {
-          path: "/api",
-          cors: {
-            origin: "*", // Configure CORS as needed
+    // Use the imported HttpTransport directly
+    // Remove the dynamic import logic for now
+    const transport = new HttpTransport({ 
+        httpServer, 
+        path: "/api", // Ensure this path matches client expectations
+        // Add CORS options if needed by your client (e.g., the Inspector)
+        cors: {
+            origin: "*", // Be more specific in production
             methods: ["POST", "OPTIONS"],
-            allowedHeaders: ["Content-Type", "Authorization"] // Add necessary headers
-          }
-        });
-      } catch (importError) {
-        process.stderr.write(`Failed to import HTTP transport: ${importError}\n`);
-        // Log the original error as well if it's different and potentially useful
-        if (error !== importError) {
-             process.stderr.write(`Initial import error: ${error}\n`);
+            allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID"], // Add headers required by MCP/client
         }
-        throw importError; // Rethrow the specific import error encountered
-      }
+    });
+    
+    // Check if the server was initialized before connecting
+    if (!this.server) {
+        throw new Error("MCP server instance was not properly initialized.");
     }
     
     // Connect MCP server to transport
-    // Ensure 'server' is the McpServer instance, not the promise
     await this.server.connect(transport); 
     
     // Start HTTP server
     return new Promise<void>((resolve) => {
+      // Add error handling for server start
+      httpServer.on('error', (error) => {
+        process.stderr.write(`HTTP Server error: ${error.message}\n`);
+        process.exit(1); // Exit if server fails to start
+      });
+
       httpServer.listen(port, () => {
-        // Avoid console.log for STDIO compatibility, use stderr for dev info
+        // Use stderr for dev info, avoid console.log
         if (process.env.NODE_ENV === 'development') {
-          process.stderr.write(`HTTP Server running on port ${port}\n`);
+          process.stderr.write(`MCP HTTP Server running on port ${port}, accessible at /api\n`);
         }
         resolve();
       });
@@ -298,19 +253,37 @@ export class MCPHttpService {
   }
   
   public async stop(): Promise<void> {
+    // Call cleanup first
     if (this.cleanup) {
-      await this.cleanup();
+      try {
+        await this.cleanup();
+      } catch (error) {
+         process.stderr.write(`Error during MCP cleanup: ${error instanceof Error ? error.message : String(error)}\n`);
+      }
     }
     
+    // Close the MCP server connection
     if (this.server) {
-      await this.server.close();
+       try {
+        await this.server.close();
+       } catch (error) {
+         process.stderr.write(`Error closing MCP server: ${error instanceof Error ? error.message : String(error)}\n`);
+       }
     }
     
-    if (this.httpServer) {
+    // Close the HTTP server
+    if (this.httpServer && this.httpServer.listening) {
       return new Promise<void>((resolve, reject) => {
         this.httpServer?.close((err?: Error) => {
-          if (err) reject(err);
-          else resolve();
+          if (err) {
+            process.stderr.write(`Error closing HTTP server: ${err.message}\n`);
+            reject(err);
+          } else {
+             if (process.env.NODE_ENV === 'development') {
+               process.stderr.write(`HTTP Server stopped.\n`);
+             }
+            resolve();
+          }
         });
       });
     }

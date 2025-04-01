@@ -8,27 +8,39 @@ async function main() {
     if (process.env.TRANSPORT_TYPE === 'http') {
       await mcpHttpService.start(Number(process.env.PORT || 3001));
       
-      // Handle graceful shutdown
-      const shutdown = async () => {
+      // Handle graceful shutdown for HTTP
+      const httpShutdown = async () => {
         await mcpHttpService.stop();
         process.exit(0);
       };
       
-      process.on('SIGINT', shutdown);
-      process.on('SIGTERM', shutdown);
+      process.on('SIGINT', httpShutdown);
+      process.on('SIGTERM', httpShutdown);
     } 
     // Default to STDIO transport for Claude Desktop compatibility
     else {
-      // Await the creation of the server
-      // Assuming createRaindropServer returns Promise<McpServer> directly
-      const server = await createRaindropServer(); 
+      // Await the creation of the server and destructure the result
+      const { server: mcpServerInstance, cleanup } = await createRaindropServer(); 
+      
       const transport = new StdioServerTransport();
       
-      // Connect MCP server to transport
-      await server.connect(transport);
+      // Connect the actual MCP server instance to the transport
+      await mcpServerInstance.connect(transport);
       
-      // No need for explicit shutdown handling with STDIO
-      // Claude Desktop will handle this
+      // Handle graceful shutdown for STDIO, calling the cleanup function
+      const stdioShutdown = async () => {
+        if (cleanup) { // Ensure cleanup function exists
+          await cleanup(); 
+        }
+        // Optional: Add server close if necessary, though cleanup might handle it
+        // await mcpServerInstance.close(); 
+        process.exit(0);
+      };
+      process.on('SIGINT', stdioShutdown);
+      process.on('SIGTERM', stdioShutdown);
+      
+      // Note: Even if the host (like Claude Desktop) terminates the process,
+      // registering SIGINT/SIGTERM handlers ensures your cleanup logic runs.
     }
   } catch (error) {
     // Ensure error is a string or has a message property
