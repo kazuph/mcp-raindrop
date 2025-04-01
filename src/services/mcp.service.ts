@@ -1,8 +1,7 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer, ResourceTemplate  } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import raindropService from './raindrop.service.js';
-import config from "../config/config.js";
-import type { Collection, Bookmark, SearchParams } from "../types/raindrop.js";
+//import type { Collection, Bookmark, SearchParams } from "../types/raindrop.js";
 
 export class RaindropMCPService {
   private server: McpServer;
@@ -76,31 +75,60 @@ export class RaindropMCPService {
       }
     );
 
-    this.server.tool(
-      'getChildCollections',
-      'Get child collections of a parent collection',
-      {
-        parentId: z.number().describe('Parent Collection ID')
-      },
-      async ({ parentId }) => {
-        try {
-          const collections = await raindropService.getChildCollections(parentId);
-          return {
-            content: collections.map(collection => ({
-              type: "text",
-              text: collection.title,
-              metadata: {
-                id: collection._id,
-                count: collection.count,
-                public: collection.public,
-                created: collection.created,
-                lastUpdate: collection.lastUpdate
-              }
-            }))
-          };
-        } catch (error) {
-          throw new Error(`Failed to get child collections: ${(error as Error).message}`);
+    // Define a resource for all collections
+    this.server.resource(
+      "collections",
+      "collections://all",
+      async (uri) => {
+        const collections = await raindropService.getCollections();
+        return {
+          contents: collections.map(collection => ({
+            uri: `${uri.href}/${collection._id}`,
+            text: collection.title,
+            metadata: {
+              id: collection._id,
+              count: collection.count,
+              public: collection.public,
+              created: collection.created,
+              lastUpdate: collection.lastUpdate
+            }
+          }))
+        };
+      }
+    );
+
+    // Define a resource for child collections
+    this.server.resource(
+      "child-collections",
+      new ResourceTemplate("collections://{parentId}/children", {
+        complete: {
+          parentId: async (value: string) => {
+            // Convert the value to a number and validate it
+            const parentId = parseInt(value, 10);
+            if (isNaN(parentId)) {
+              throw new Error(`Invalid parentId: ${value}`);
+            }
+
+            // Return the resolved value as an array (e.g., for auto-completion)
+            return [`${parentId}`];
+          }
         }
+      }),
+      async (uri, { parentId }) => {
+        const collections = await raindropService.getChildCollections(Number(parentId));
+        return {
+          contents: collections.map(collection => ({
+            uri: `${uri.href}/${collection._id}`,
+            text: collection.title,
+            metadata: {
+              id: collection._id,
+              count: collection.count,
+              public: collection.public,
+              created: collection.created,
+              lastUpdate: collection.lastUpdate
+            }
+          }))
+        };
       }
     );
 
@@ -924,12 +952,11 @@ export class RaindropMCPService {
     return this.server;
   }
 
-  // Stop method remains the same for cleanup
+  // Corrected stop method for cleanup
   async stop() {
-    // Check if server exists and has a close method before calling
-    if (this.server && typeof this.server.close === 'function') {
-      await this.server.close();
-    }
+    // Perform any necessary cleanup here
+    // No assumption of a `close` method on the server
+    this.server = null as unknown as McpServer; // Nullify the server reference
   }
 }
 

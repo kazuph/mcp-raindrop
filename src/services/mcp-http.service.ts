@@ -1,296 +1,221 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import raindropClient from './raindrop.service.js';
-import type { SearchParams } from '../types/raindrop.js';
-import { createServer, Server } from 'http';
+import type { SearchParams, Bookmark } from '../types/raindrop.js';
+import { createServer, Server as HttpServer } from 'http';
 import { createRaindropServer } from './mcp.service.js';
-import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
-// Attempt to import HttpTransport directly - remove .js extension
-import { HttpTransport } from "@modelcontextprotocol/sdk/server/sse.js"; 
-// Remove the unused createMCPHttpServer function if MCPHttpService is used directly
-// export const createMCPHttpServer = () => { ... };
+import type { RequestHandlerExtra, ContentChunk, ContentChunkResource } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 
-function setupEventStreams(server: McpServer, activeIntervals: NodeJS.Timeout[], activeStreams: Set<{ isActive: boolean }>) {
-  // The stream tool implementation remains mostly unchanged
+// Helper function to format bookmarks for MCP
+function formatBookmarkAsResource(bookmark: Bookmark): ContentChunk {
+  return {
+    type: "resource",
+    resource: {
+      title: bookmark.title || "Untitled Bookmark",
+      uri: bookmark.link,
+      metadata: {
+        id: bookmark._id,
+        excerpt: bookmark.excerpt,
+        tags: bookmark.tags,
+        collectionId: bookmark.collection?.$id,
+        created: bookmark.created,
+        lastUpdate: bookmark.lastUpdate,
+        type: bookmark.type
+      }
+    },
+    annotations: {
+      priority: 0.7, // Default priority
+      audience: ["user", "assistant"]
+    }
+  };
+}
+
+// Function to set up streaming tools on the MCP server
+function setupStreamingTools(server: McpServer) {
   server.tool(
     'streamBookmarks',
-    'Stream bookmarks from Raindrop.io with real-time updates',
+    'Stream bookmarks from Raindrop.io with real-time updates via polling',
     {
       search: z.string().optional().describe('Search query for filtering bookmarks'),
-      collection: z.string().optional().describe('Collection ID to filter bookmarks'),
-      limit: z.number().optional().describe('Maximum number of bookmarks to return')
+      collection: z.number().optional().describe('Collection ID to filter bookmarks'),
+      // Limit is not directly supported by the underlying getBookmarks, but kept for potential future use
+      limit: z.number().optional().describe('Maximum number of bookmarks to return initially') 
     },
-    async ({ search, collection, limit }: { search?: string; collection?: string; limit?: number }, extra: RequestHandlerExtra) => {
-      // Object to track the stream state
-      const streamState = { isActive: true };
-      activeStreams.add(streamState);
-      
+    async (params: { search?: string; collection?: number; limit?: number }, extra: RequestHandlerExtra) => {
+      const { search, collection, limit } = params;
+      const searchParams: SearchParams = { search, collection, perPage: limit }; // Use limit for perPage initially
+
       try {
-        const searchParams: SearchParams = { 
-          search, 
-          collection: collection ? Number(collection) : undefined,
-          // Note: 'limit' is not directly supported by raindropClient.getBookmarks, 
-          // it might need custom handling if required.
-        };
-        
-        // Initial bookmarks fetch
-        const bookmarks = await raindropClient.getBookmarks(searchParams);
-        
-        // Setup stream with enhanced error handling
-        return {
-          content: bookmarks.items.map(bookmark => ({
-            type: "resource",
-            resource: {
-              text: bookmark.title || "Untitled Bookmark",
-              uri: bookmark.link,
-              metadata: {
-                id: bookmark._id,
-                excerpt: bookmark.excerpt,
-                tags: bookmark.tags,
-                collectionId: bookmark.collection?.$id,
-                created: bookmark.created,
-                lastUpdate: bookmark.lastUpdate,
-                type: bookmark.type
-              }
-            },
-            annotations: {
-              priority: 0.7, // Medium priority
-              audience: ["user", "assistant"]
-            }
-          })),
-          stream: new Promise((resolve, reject) => {
-            let interval: NodeJS.Timeout;
-            let lastCheckTime = Date.now(); // Track the time of the last check
+        // Initial fetch
+        const initialData = await raindropClient.getBookmarks(searchParams);
+        const initialContent = initialData.items.map(formatBookmarkAsResource);
 
-            // Handle uncaught errors specific to this stream
-            const handleError = (err: any) => {
-              streamState.isActive = false;
-              if (interval) {
-                 clearInterval(interval);
-                 const index = activeIntervals.indexOf(interval);
-                 if (index > -1) {
-                   activeIntervals.splice(index, 1);
-                 }
-              }
-              // Removed global uncaughtException handler - handle errors locally
-              // process.removeListener('uncaughtException', handleError); 
-              activeStreams.delete(streamState);
-              reject(err); // Reject the stream promise
-            };
-            
-            // Removed global uncaughtException listener - prefer local try/catch
-            // process.on('uncaughtException', handleError);
-            
-            // Poll for updates
-            interval = setInterval(async () => {
-              if (!streamState.isActive) {
-                clearInterval(interval);
-                const index = activeIntervals.indexOf(interval);
-                if (index > -1) {
-                  activeIntervals.splice(index, 1);
-                }
-                // process.removeListener('uncaughtException', handleError); // Removed
-                resolve(undefined); // Resolve with undefined when stream ends normally
-                return;
-              }
-              
+        // Return an AsyncIterable stream
+        return {
+          content: initialContent, // Send initial batch immediately
+          stream: (async function*() {
+            let lastCheckTime = new Date(); // Use Date object
+
+            // Polling loop
+            while (!extra.signal?.aborted) {
               try {
-                const currentTime = Date.now();
-                // Check for recent bookmarks since the last check
-                const updatedParams: SearchParams = { 
-                  search, 
-                  collection: collection ? Number(collection) : undefined,
-                  // Fetch items modified since the last check time
-                  since: new Date(lastCheckTime).toISOString() 
-                };
-                lastCheckTime = currentTime; // Update last check time for the next poll
-                
-                const updatedBookmarks = await raindropClient.getBookmarks(updatedParams);
-                
-                if (updatedBookmarks.items.length > 0) {
-                  // Resolve the stream promise with the new content chunk
-                  resolve({
-                    content: updatedBookmarks.items.map(bookmark => ({
-                      type: "resource",
-                      resource: {
-                        text: bookmark.title || "Untitled Bookmark",
-                        uri: bookmark.link,
-                        metadata: {
-                          id: bookmark._id,
-                          excerpt: bookmark.excerpt,
-                          tags: bookmark.tags,
-                          collectionId: bookmark.collection?.$id,
-                          created: bookmark.created,
-                          lastUpdate: bookmark.lastUpdate,
-                          type: bookmark.type
-                        }
-                      },
-                      annotations: {
-                        priority: 0.8, // Higher priority for new items
-                        audience: ["user", "assistant"]
-                      }
-                    }))
-                  });
-                  // Stop polling after sending the update chunk
-                  streamState.isActive = false; 
-                  clearInterval(interval);
-                  const index = activeIntervals.indexOf(interval);
-                  if (index > -1) {
-                    activeIntervals.splice(index, 1);
-                  }
-                  // process.removeListener('uncaughtException', handleError); // Removed
-                  activeStreams.delete(streamState);
+                // Wait for 30 seconds before the next poll
+                await new Promise(resolve => setTimeout(resolve, 30000));
 
+                // Check for cancellation again after waiting
+                if (extra.signal?.aborted) break;
+
+                const pollParams: SearchParams = {
+                  search,
+                  collection,
+                  since: lastCheckTime.toISOString() // Fetch items modified since the last check
+                };
+                const currentTime = new Date(); // Capture time before the API call
+
+                const updatedData = await raindropClient.getBookmarks(pollParams);
+                lastCheckTime = currentTime; // Update last check time *after* successful fetch
+
+                if (updatedData.items.length > 0) {
+                  // Yield new bookmarks found since the last poll
+                  yield {
+                    content: updatedData.items.map(bookmark => {
+                      const resource = formatBookmarkAsResource(bookmark);
+                      // Optionally increase priority for updates
+                      if (resource.annotations) resource.annotations.priority = 0.8; 
+                      return resource;
+                    })
+                  };
                 }
-                // If no updates, the interval continues polling. The promise remains pending.
-              } catch (error) {
-                // Handle errors during polling
-                handleError(error); 
+                // If no updates, the loop continues to the next poll cycle
+              } catch (pollError) {
+                 // Log polling errors to stderr but continue polling unless aborted
+                 process.stderr.write(`Polling error in streamBookmarks: ${pollError instanceof Error ? pollError.message : String(pollError)}\n`);
+                 // Optional: Implement backoff or stop polling after too many errors
+                 if (extra.signal?.aborted) break; 
               }
-            }, 30000); // Poll every 30 seconds
-            
-            // Add interval to the registry for cleanup
-            activeIntervals.push(interval);
-            
-            // Listen for client disconnection (abort signal)
-            extra.signal?.addEventListener('abort', () => {
-              streamState.isActive = false;
-              clearInterval(interval);
-              const index = activeIntervals.indexOf(interval);
-              if (index > -1) {
-                activeIntervals.splice(index, 1);
-              }
-              // process.removeListener('uncaughtException', handleError); // Removed
-              activeStreams.delete(streamState);
-              resolve(undefined); // Resolve with undefined when aborted
-            });
-          })
+            }
+          })() // Immediately invoke the async generator
         };
-      } catch (error) {
-        // Handle errors during initial setup
-        streamState.isActive = false;
-        activeStreams.delete(streamState);
-        // Ensure the error is propagated correctly as an MCP error response
+      } catch (initialError) {
+        // Handle errors during the initial fetch
+        process.stderr.write(`Initial fetch error in streamBookmarks: ${initialError instanceof Error ? initialError.message : String(initialError)}\n`);
+        // Return an MCP error response
         return {
-            isError: true,
-            content: [{ type: 'text', text: error instanceof Error ? error.message : String(error) }]
+          isError: true,
+          content: [{ type: 'text', text: `Failed to start bookmark stream: ${initialError instanceof Error ? initialError.message : String(initialError)}` }]
         };
       }
     }
   );
 
-  server.tool(
-    'getActiveStreams', 
-    'Get information about currently active streams',
-    {},
-    async () => {
-      return {
-        content: [{
-          type: "text",
-          text: `Currently active streams: ${activeStreams.size}`,
-          metadata: {
-            count: activeStreams.size
-          }
-        }]
-      };
-    }
-  );
+  // Add other streaming-related tools if needed, e.g., getActiveStreams (though managing this state becomes more complex with async iterables)
 }
 
-// New service using native HTTP transport
+// Service class to manage the MCP server with HTTP/SSE transport
 export class MCPHttpService {
-  private server: McpServer | null = null;
-  private cleanup: (() => Promise<void>) | null = null;
-  private httpServer: Server | null = null;
-  
+  private mcpServer: McpServer | null = null;
+  private httpServer: HttpServer | null = null;
+  private cleanupCallback: (() => Promise<void>) | null = null;
+
   public async start(port: number = 3001): Promise<void> {
-    // Explicitly type the destructured result from createRaindropServer
-    const { server, cleanup }: { server: McpServer; cleanup: () => Promise<void> } = await createRaindropServer(); 
-    this.server = server;
-    this.cleanup = cleanup;
-    
-    // Create HTTP server using native Node.js HTTP
-    const httpServer = createServer();
-    this.httpServer = httpServer;
-    
-    // Use the imported HttpTransport directly
-    // Remove the dynamic import logic for now
-    const transport = new HttpTransport({ 
-        httpServer, 
-        path: "/api", // Ensure this path matches client expectations
-        // Add CORS options if needed by your client (e.g., the Inspector)
-        cors: {
-            origin: "*", // Be more specific in production
-            methods: ["POST", "OPTIONS"],
-            allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID"], // Add headers required by MCP/client
-        }
-    });
-    
-    // Check if the server was initialized before connecting
-    if (!this.server) {
-        throw new Error("MCP server instance was not properly initialized.");
+    if (this.httpServer?.listening) {
+      process.stderr.write("HTTP Server is already running.\n");
+      return;
     }
-    
-    // Connect MCP server to transport
-    await this.server.connect(transport); 
-    
-    // Start HTTP server
-    return new Promise<void>((resolve) => {
-      // Add error handling for server start
-      httpServer.on('error', (error) => {
-        process.stderr.write(`HTTP Server error: ${error.message}\n`);
-        process.exit(1); // Exit if server fails to start
+
+    try {
+      // Create the core MCP server instance and get cleanup function
+      const { server, cleanup } = await createRaindropServer();
+      this.mcpServer = server;
+      this.cleanupCallback = cleanup;
+
+      // Setup streaming tools on the created server instance
+      setupStreamingTools(this.mcpServer);
+
+      // Create the native HTTP server
+      this.httpServer = createServer();
+
+      // Configure the SSE transport
+      const transport = new SSEServerTransport({
+        httpServer: this.httpServer,
+        path: "/api", // Standard API path
+        cors: { // Basic CORS for development/Inspector
+          origin: "*", // Restrict in production
+          methods: ["POST", "OPTIONS"],
+          allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID"],
+        }
       });
 
-      httpServer.listen(port, () => {
-        // Use stderr for dev info, avoid console.log
-        if (process.env.NODE_ENV === 'development') {
-          process.stderr.write(`MCP HTTP Server running on port ${port}, accessible at /api\n`);
-        }
-        resolve();
-      });
-    });
-  }
-  
-  public async stop(): Promise<void> {
-    // Call cleanup first
-    if (this.cleanup) {
-      try {
-        await this.cleanup();
-      } catch (error) {
-         process.stderr.write(`Error during MCP cleanup: ${error instanceof Error ? error.message : String(error)}\n`);
-      }
-    }
-    
-    // Close the MCP server connection
-    if (this.server) {
-       try {
-        await this.server.close();
-       } catch (error) {
-         process.stderr.write(`Error closing MCP server: ${error instanceof Error ? error.message : String(error)}\n`);
-       }
-    }
-    
-    // Close the HTTP server
-    if (this.httpServer && this.httpServer.listening) {
-      return new Promise<void>((resolve, reject) => {
-        this.httpServer?.close((err?: Error) => {
-          if (err) {
-            process.stderr.write(`Error closing HTTP server: ${err.message}\n`);
-            reject(err);
-          } else {
-             if (process.env.NODE_ENV === 'development') {
-               process.stderr.write(`HTTP Server stopped.\n`);
-             }
-            resolve();
+      // Connect the MCP server to the transport
+      await this.mcpServer.connect(transport);
+
+      // Start listening
+      await new Promise<void>((resolve, reject) => {
+        this.httpServer?.on('error', (error) => {
+          process.stderr.write(`HTTP Server error: ${error.message}\n`);
+          this.stop().finally(() => reject(error)); // Attempt cleanup on error
+        });
+
+        this.httpServer?.listen(port, () => {
+          if (process.env.NODE_ENV !== 'test') { // Avoid logging during tests
+             process.stderr.write(`MCP HTTP Server running on port ${port}, accessible at /api\n`);
           }
+          resolve();
         });
       });
+
+    } catch (error) {
+      process.stderr.write(`Failed to start MCP HTTP Service: ${error instanceof Error ? error.message : String(error)}\n`);
+      await this.stop(); // Attempt cleanup if start fails
+      throw error; // Re-throw the error after cleanup attempt
     }
-    
-    return Promise.resolve();
+  }
+
+  public async stop(): Promise<void> {
+    // Close the HTTP server first
+    if (this.httpServer?.listening) {
+      await new Promise<void>((resolve, reject) => {
+        this.httpServer?.close((err) => {
+          if (err) {
+            process.stderr.write(`Error closing HTTP server: ${err.message}\n`);
+            // Don't reject here, proceed to MCP cleanup
+          } else if (process.env.NODE_ENV !== 'test') {
+             process.stderr.write("HTTP Server stopped.\n");
+          }
+          resolve();
+        });
+      });
+      this.httpServer = null;
+    }
+
+    // Close the MCP server connection
+    if (this.mcpServer) {
+      try {
+        await this.mcpServer.close();
+         if (process.env.NODE_ENV !== 'test') {
+            process.stderr.write("MCP Server connection closed.\n");
+         }
+      } catch (error) {
+        process.stderr.write(`Error closing MCP server: ${error instanceof Error ? error.message : String(error)}\n`);
+      }
+      this.mcpServer = null;
+    }
+
+    // Call the specific cleanup function from createRaindropServer (which might include stopping the base service)
+    if (this.cleanupCallback) {
+      try {
+        await this.cleanupCallback();
+         if (process.env.NODE_ENV !== 'test') {
+            process.stderr.write("MCP Core Service cleanup executed.\n");
+         }
+      } catch (error) {
+        process.stderr.write(`Error during MCP cleanup callback: ${error instanceof Error ? error.message : String(error)}\n`);
+      }
+      this.cleanupCallback = null;
+    }
   }
 }
 
-// Export a singleton instance
+// Export a singleton instance for convenience
 export const mcpHttpService = new MCPHttpService();
