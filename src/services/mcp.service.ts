@@ -100,20 +100,7 @@ export class RaindropMCPService {
     // Define a resource for child collections
     this.server.resource(
       "child-collections",
-      new ResourceTemplate("collections://{parentId}/children", {
-        complete: {
-          parentId: async (value: string) => {
-            // Convert the value to a number and validate it
-            const parentId = parseInt(value, 10);
-            if (isNaN(parentId)) {
-              throw new Error(`Invalid parentId: ${value}`);
-            }
-
-            // Return the resolved value as an array (e.g., for auto-completion)
-            return [`${parentId}`];
-          }
-        }
-      }),
+      new ResourceTemplate("collections://{parentId}/children", { list: undefined }),
       async (uri, { parentId }) => {
         const collections = await raindropService.getChildCollections(Number(parentId));
         return {
