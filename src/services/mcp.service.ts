@@ -1,5 +1,4 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import raindropService from './raindrop.service.js';
 import config from "../config/config.js";
@@ -14,7 +13,7 @@ export class RaindropMCPService {
       version: '1.0.0',
       description: 'MCP Server for Raindrop.io bookmarking service',
       capabilities: {
-        logging: false
+        logging: false // Keep logging off for STDIO compatibility
       }
     });
 
@@ -920,22 +919,26 @@ export class RaindropMCPService {
     );
   }
 
-  async start() {
-    const transport = new StdioServerTransport(process.stdin, process.stdout);
-    await this.server.connect(transport);
+  // Method to simply get the configured server instance
+  getServerInstance(): McpServer {
     return this.server;
   }
 
+  // Stop method remains the same for cleanup
   async stop() {
-    await this.server.close();
+    // Check if server exists and has a close method before calling
+    if (this.server && typeof this.server.close === 'function') {
+      await this.server.close();
+    }
   }
 }
 
+// Factory function now returns the unconnected server instance
 export function createRaindropServer() {
   const service = new RaindropMCPService();
   return { 
-    server: service.start(),
-    cleanup: () => service.stop()
+    server: service.getServerInstance(), // Return the instance directly
+    cleanup: () => service.stop()       // Return the cleanup function
   };
 }
 
