@@ -6,7 +6,9 @@ async function main() {
   try {
     // For HTTP transport when explicitly configured
     if (process.env.TRANSPORT_TYPE === 'http') {
-      await mcpHttpService.start(Number(process.env.PORT || 3001));
+
+      const { mcpHttpService } = await import('./services/mcp-http.service.js');
+      await mcpHttpService.start();
       
       // Handle graceful shutdown for HTTP
       const httpShutdown = async () => {
