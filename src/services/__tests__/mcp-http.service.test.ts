@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
-import { mcpHttpService } from '../src/services/mcp-http.service.js';
+import { mcpHttpService } from '../mcp-http.service.js';
 import axios from 'axios';
 
 describe('MCPHttpService', () => {
@@ -7,7 +7,7 @@ describe('MCPHttpService', () => {
   
   beforeAll(async () => {
     // Start HTTP server for testing
-    await mcpHttpService.start(PORT);
+    await mcpHttpService.start();
   });
   
   afterAll(async () => {

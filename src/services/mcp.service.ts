@@ -16,8 +16,134 @@ export class RaindropMCPService {
       }
     });
 
+    this.initializeResources();
     this.initializeTools();
   }
+
+private initializeResources(){
+ // Define a resource for all collections
+ this.server.resource(
+  "collections",
+  "collections://all",
+  async (uri) => {
+    const collections = await raindropService.getCollections();
+    return {
+      contents: collections.map(collection => ({
+        uri: `${uri.href}/${collection._id}`,
+        text: collection.title,
+        metadata: {
+          id: collection._id,
+          count: collection.count,
+          public: collection.public,
+          created: collection.created,
+          lastUpdate: collection.lastUpdate
+        }
+      }))
+    };
+  }
+);
+
+// Define a resource for child collections
+this.server.resource(
+  "child-collections",
+  new ResourceTemplate("collections://{parentId}/children", { list: undefined }),
+  async (uri, { parentId }) => {
+    const collections = await raindropService.getChildCollections(Number(parentId));
+    return {
+      contents: collections.map(collection => ({
+        uri: `${uri.href}/${collection._id}`,
+        text: collection.title,
+        metadata: {
+          id: collection._id,
+          count: collection.count,
+          public: collection.public,
+          created: collection.created,
+          lastUpdate: collection.lastUpdate
+        }
+      }))
+    };
+  }
+);
+
+    // Convert getTags to a resource
+    this.server.resource(
+      'tags',
+      'tags://all',
+      async (uri) => {
+        const tags = await raindropService.getTags();
+        return {
+          contents: tags.map(tag => ({
+            uri: `${uri.href}/${tag._id}`,
+            text: tag._id,
+            metadata: {
+              count: tag.count
+            }
+          }))
+        };
+      }
+    );
+  
+    // Convert getAllHighlights to a resource
+    this.server.resource(
+      'highlights',
+      'highlights://all',
+      async (uri) => {
+        const highlights = await raindropService.getAllHighlights();
+        return {
+          contents: highlights.map(highlight => ({
+            uri: '${uri.href}',
+            text: highlight.text,
+            metadata: {
+              id: highlight._id,
+              raindropId: highlight.raindrop?._id,
+              note: highlight.note,
+              color: highlight.color,
+              created: highlight.created
+            }
+          }))
+        };
+      }
+    );
+  
+    // Convert getUserInfo to a resource
+    this.server.resource(
+      'user-info',
+      'user://info',
+      async (uri) => {
+        const user = await raindropService.getUserInfo();
+        return {
+          contents: [{
+            uri: uri.href,
+            text: `User: ${user.fullName || user.email}`,
+            metadata: {
+              id: user._id,
+              email: user.email,
+              fullName: user.fullName,
+              pro: user.pro,
+              registered: user.registered
+            }
+          }]
+        };
+      }
+    );
+  
+    // Convert getUserStats to a resource
+    this.server.resource(
+      'user-stats',
+      'user://stats',
+      async (uri) => {
+        const stats = await raindropService.getUserStats();
+        return {
+          contents: [{
+            uri: uri.href,
+            text: `User Statistics`,
+            metadata: stats
+          }]
+        };
+      }
+    );
+  
+}
 
   private initializeTools() {
     // Collection operations
@@ -75,49 +201,7 @@ export class RaindropMCPService {
       }
     );
 
-    // Define a resource for all collections
-    this.server.resource(
-      "collections",
-      "collections://all",
-      async (uri) => {
-        const collections = await raindropService.getCollections();
-        return {
-          contents: collections.map(collection => ({
-            uri: `${uri.href}/${collection._id}`,
-            text: collection.title,
-            metadata: {
-              id: collection._id,
-              count: collection.count,
-              public: collection.public,
-              created: collection.created,
-              lastUpdate: collection.lastUpdate
-            }
-          }))
-        };
-      }
-    );
-
-    // Define a resource for child collections
-    this.server.resource(
-      "child-collections",
-      new ResourceTemplate("collections://{parentId}/children", { list: undefined }),
-      async (uri, { parentId }) => {
-        const collections = await raindropService.getChildCollections(Number(parentId));
-        return {
-          contents: collections.map(collection => ({
-            uri: `${uri.href}/${collection._id}`,
-            text: collection.title,
-            metadata: {
-              id: collection._id,
-              count: collection.count,
-              public: collection.public,
-              created: collection.created,
-              lastUpdate: collection.lastUpdate
-            }
-          }))
-        };
-      }
-    );
+   
 
     this.server.tool(
       'createCollection',
@@ -810,6 +894,9 @@ export class RaindropMCPService {
         }
       }
     );
+
+
+ 
 
     // User operations
     this.server.tool(

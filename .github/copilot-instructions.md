@@ -9,4 +9,5 @@ I am using the [Inspeector](https://modelcontextprotocol.io/docs/tools/inspector
 ensure API coverage is complete. 
 i use vitest for testing
 i am using bun for package management not npm
+refer to ![CLAUDE.md](../CLAUDE.md) for other AI assistant context, when using Anthropic.
 
