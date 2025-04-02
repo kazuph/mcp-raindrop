@@ -4,6 +4,15 @@ import RaindropService from '../services/raindrop.service.js';
 import { config } from 'dotenv';
 config(); // Load .env file
 
+// Check if the token exists
+const raindropAccessToken = process.env.RAINDROP_ACCESS_TOKEN;
+if (!raindropAccessToken) {
+  // Use more graceful handling in production
+  throw new Error('RAINDROP_ACCESS_TOKEN environment variable is required. Please check your .env file or environment settings.');
+}
+
+
+
 // This test requires a valid access token in your config
 describe('Raindrop API Endpoints', () => {
   it('should fetch highlights from /highlights endpoint', async () => {

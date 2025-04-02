@@ -3,7 +3,7 @@ import axios, { Axios, AxiosError } from 'axios';
 import { config } from 'dotenv';
 config(); // Load .env file
 // Import shared types
-import type { Collection, Bookmark, Highlight, SearchParams } from '../types/raindrop.js';
+import type { Collection, Bookmark, Highlight,HighlightContent, SearchParams } from '../types/raindrop.js';
 
 
 // Check if the token exists
@@ -220,7 +220,7 @@ class RaindropService {
   async getHighlights(raindropId: number): Promise<Highlight[]> {
     try {
       // According to the documentation, the endpoint for a specific raindrop's highlights is /raindrop/{id}/highlights
-      const { data } = await this.api.get(`/raindrop/${raindropId}/highlights`);
+      const { data } = await this.api.get('/raindrop/${raindropId}');
       
       // Check for items array in response
       if (data && Array.isArray(data.items)) {
@@ -247,7 +247,47 @@ class RaindropService {
     }
   }
 
-  async getAllHighlights(page = 0, perPage = 25): Promise<Highlight[]> {
+
+  async getAllHighlights(): Promise<Highlight[]> {
+   
+      const { data } = await this.api.get('/highlights');
+      return data.items.map((item: any) => this.mapHighlightContentToHighlight(item)).filter(Boolean);
+ 
+
+  }
+
+  // Helper to convert the new highlight content format to our Highlight type
+  private mapHighlightContentToHighlight(content: any): Highlight | null {
+    if (!content || !content.metadata || !content.metadata.id) {
+      return null;
+    }
+
+    // Extract raindrop ID from URI if possible
+    const raindropIdMatch = content.uri.match(/highlights:\/\/(\d+)\//) || [];
+    const raindropId = content.metadata.raindrop?._id || 
+                       (raindropIdMatch[1] ? parseInt(raindropIdMatch[1], 10) : 0);
+
+    return {
+      _id: parseInt(content.metadata.id, 10) || 0, // Convert string ID to number
+      text: content.text || '',
+      note: content.metadata.note || '',
+      color: '', // Not provided in this format
+      created: content.metadata.created,
+      lastUpdate: content.metadata.created, // Using created as last update since it's not provided
+      title: content.metadata.title || '',
+      tags: content.metadata.tags || [],
+      link: content.metadata.link || '',
+      excerpt: '', // Not provided in this format
+      raindrop: {
+        _id: raindropId,
+        title: content.metadata.title || '',
+        link: content.metadata.link || '',
+        collection: { $id: 0 } // Collection info not provided in this format
+      }
+    };
+  }
+
+  async getAllHighlightsByPage(page = 0, perPage = 25): Promise<Highlight[]> {
     try {
       // Use the correct endpoint based on testing: /highlights (not /user/highlights)
       const { data } = await this.api.get('/highlights', {
@@ -285,10 +325,10 @@ class RaindropService {
     
     // According to API docs, highlights should have a raindrop property
     // But handle the case where it might be missing
-    const raindropId = item.raindrop?._id;
-    if (!raindropId) {
-      return null;
-    }
+   // const raindropId = item.raindrop?._id;
+   // if (!raindropId) {
+    //  return null;
+   // }
     
     return {
       _id: item._id,

@@ -115,6 +115,24 @@ export type Highlight = {
   };
 };
 
+export type HighlightContent = {
+  uri: string;
+  text: string;
+  metadata: {
+    id: string;
+    note: string;
+    created: string;
+    title: string;
+    tags?: string[];
+    link: string;
+    raindrop?: {
+      _id: number;
+      title?: string;
+      link?: string;
+    };
+  };
+};
+
 export type SearchParams = {
   search?: string;
   collection?: number;
