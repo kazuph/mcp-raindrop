@@ -1,0 +1,49 @@
+import {vi, describe, it, expect } from 'vitest';
+import raindropService from '../raindrop.service.js';
+import { default as RaindropService } from '../raindrop.service.js';
+import config from '../../config/config.js';
+
+describe('Raindrop Service', () => {
+    it('should return the correct value for a given input', () => {
+        expect(1 + 1).toBe(2);
+    });
+});
+describe('RaindropService', () => {
+   let raindropService: typeof RaindropService;
+
+  beforeEach(() => {
+    raindropService = new raindropService();
+  });
+
+  it('should initialize the API client with the correct configuration', () => {
+    expect(raindropService['api'].defaults.baseURL).toBe('https://api.raindrop.io/rest/v1');
+    expect(raindropService['api'].defaults.headers.Authorization).toBe(`Bearer ${config.raindropAccessToken}`);
+    expect(raindropService['api'].defaults.headers['Content-Type']).toBe('application/json');
+  });
+
+  it('should create a dummy collection, return its ID, and add a dummy bookmark to it', async () => {
+    const mockCollection = { _id: 123, title: 'Dummy Collection', public: false };
+    const mockBookmark = { _id: 456, title: 'Dummy Bookmark', link: 'https://example.com' };
+
+    vi.spyOn(raindropService, 'createCollection').mockResolvedValue(mockCollection as any);
+    vi.spyOn(raindropService, 'createBookmark').mockResolvedValue(mockBookmark as any);
+
+    // Step 1: Create a dummy collection
+    const createdCollection = await raindropService.createCollection('Dummy Collection', false);
+    expect(createdCollection).toEqual(mockCollection);
+
+    // Step 2: Add a dummy bookmark to the created collection
+    const createdBookmark = await raindropService.createBookmark(createdCollection._id, {
+      title: 'Dummy Bookmark',
+      link: 'https://example.com',
+    });
+    expect(createdBookmark).toEqual(mockBookmark);
+
+    // Verify the methods were called with the correct arguments
+    expect(raindropService.createCollection).toHaveBeenCalledWith('Dummy Collection', false);
+    expect(raindropService.createBookmark).toHaveBeenCalledWith(createdCollection._id, {
+      title: 'Dummy Bookmark',
+      link: 'https://example.com',
+    });
+  });
+});
