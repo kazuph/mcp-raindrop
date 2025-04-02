@@ -96,13 +96,23 @@ export type Bookmark = {
 export type Highlight = {
   _id: number;
   text: string;
-  title: string;
-  color: string;
-  note: string;
+  note?: string;
+  color?: string;
   created: string;
   lastUpdate?: string;
-  tags: string[];
-  link: string;
+  title?: string;
+  tags?: string[];
+  link?: string;
+  domain?: string;
+  excerpt?: string;
+  raindrop: {
+    _id: number;
+    title?: string;
+    link?: string;
+    collection?: {
+      $id: number;
+    };
+  };
 };
 
 export type SearchParams = {

@@ -213,17 +213,19 @@ class RaindropService {
   // Highlights
   async getHighlights(raindropId: number): Promise<Highlight[]> {
     try {
-      const { data } = await this.api.get(`/highlights/${raindropId}`);
+      // According to the documentation, the endpoint should be /raindrop/{id}/highlights
+      const { data } = await this.api.get(`/raindrop/${raindropId}/highlights`);
       
-      if (data.contents && Array.isArray(data.contents)) {
-        return data.contents.map((item: any) => this.mapHighlightData({
+      // Handle various response formats
+      if (data.items && Array.isArray(data.items)) {
+        return data.items.map((item: any) => this.mapHighlightData({
           ...item, 
           raindrop: item.raindrop || { _id: raindropId }
         })).filter(Boolean);
       }
       
-      if (data.items && Array.isArray(data.items)) {
-        return data.items.map((item: any) => this.mapHighlightData({
+      if (data.result && Array.isArray(data.result)) {
+        return data.result.map((item: any) => this.mapHighlightData({
           ...item, 
           raindrop: item.raindrop || { _id: raindropId }
         })).filter(Boolean);
@@ -240,17 +242,17 @@ class RaindropService {
 
   async getAllHighlights(): Promise<Highlight[]> {
     try {
-      // Use the proper endpoint for getting all user highlights
-      const { data } = await this.api.get('/user/highlights');
+      // According to the documentation, this should be the endpoint for all highlights
+      const { data } = await this.api.get('/highlights');
       
       // Handle case when API returns {contents: []} structure
       if (data.contents && Array.isArray(data.contents)) {
-        return data.contents.map(this.mapHighlightData).filter(Boolean);
+        return data.contents.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
       }
       
       // Handle standard response format
       if (data.items && Array.isArray(data.items)) {
-        return data.items.map(this.mapHighlightData).filter(Boolean);
+        return data.items.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
       }
       
       // If neither structure is found, return empty array
@@ -265,7 +267,14 @@ class RaindropService {
 
   // Helper method to map highlight data consistently
   private mapHighlightData(item: any): Highlight | null {
-    if (!item || !item.raindrop?._id) {
+    if (!item) {
+      return null;
+    }
+    
+    // According to API docs, highlights should have a raindrop property
+    // But handle the case where it might be missing
+    const raindropId = item.raindrop?._id;
+    if (!raindropId) {
       return null;
     }
     
@@ -279,8 +288,10 @@ class RaindropService {
       title: item.title || '',
       tags: item.tags || [],
       link: item.link || '',
+      domain: item.domain || '',
+      excerpt: item.excerpt || '',
       raindrop: {
-        _id: item.raindrop?._id,
+        _id: raindropId,
         title: item.raindrop?.title || '',
         link: item.raindrop?.link || '',
         collection: item.raindrop?.collection || { $id: 0 }
@@ -290,15 +301,15 @@ class RaindropService {
 
   async getHighlightsByCollection(collectionId: number): Promise<Highlight[]> {
     try {
-      // Use the correct endpoint according to the Raindrop.io API
-      const { data } = await this.api.get(`/highlights/${collectionId}`);
+      // According to the API docs, the endpoint for highlights by collection is /highlights/collection/{id}
+      const { data } = await this.api.get(`/highlights/collection/${collectionId}`);
       
       if (data.contents && Array.isArray(data.contents)) {
-        return data.contents.map(this.mapHighlightData).filter(Boolean);
+        return data.contents.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
       }
       
       if (data.items && Array.isArray(data.items)) {
-        return data.items.map(this.mapHighlightData).filter(Boolean);
+        return data.items.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
       }
       
       return [];
@@ -312,20 +323,58 @@ class RaindropService {
   }
 
   async createHighlight(raindropId: number, highlightData: { text: string; note?: string; color?: string }): Promise<Highlight> {
-    const { data } = await this.api.post('/highlights', {
-      ...highlightData,
-      raindrop: { $id: raindropId }
-    });
-    return data.item;
+    try {
+      const { data } = await this.api.post('/highlights', {
+        ...highlightData,
+        raindrop: { $id: raindropId }
+      });
+      
+      if (!data || !data.item) {
+        throw new Error('Invalid response structure from Raindrop.io API');
+      }
+      
+      // Use the map helper to ensure consistent formatting
+      const highlight = this.mapHighlightData({
+        ...data.item,
+        raindrop: data.item.raindrop || { _id: raindropId }
+      });
+      
+      if (!highlight) {
+        throw new Error('Failed to create highlight: Invalid response data');
+      }
+      
+      return highlight;
+    } catch (error) {
+      throw new Error(`Failed to create highlight: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async updateHighlight(id: number, updates: { text?: string; note?: string; color?: string }): Promise<Highlight> {
-    const { data } = await this.api.put(`/highlights/${id}`, updates);
-    return data.item;
+    try {
+      const { data } = await this.api.put(`/highlights/${id}`, updates);
+      
+      if (!data || !data.item) {
+        throw new Error('Invalid response structure from Raindrop.io API');
+      }
+      
+      const highlight = this.mapHighlightData(data.item);
+      
+      if (!highlight) {
+        throw new Error('Failed to update highlight: Invalid response data');
+      }
+      
+      return highlight;
+    } catch (error) {
+      throw new Error(`Failed to update highlight: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async deleteHighlight(id: number): Promise<void> {
-    await this.api.delete(`/highlights/${id}`);
+    try {
+      await this.api.delete(`/highlights/${id}`);
+    } catch (error) {
+      throw new Error(`Failed to delete highlight with ID ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   // Search

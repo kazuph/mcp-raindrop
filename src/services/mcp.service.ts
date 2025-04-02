@@ -96,12 +96,17 @@ this.server.resource(
             metadata: {
               id: highlight._id,
               raindropId: highlight.raindrop?._id,
+              raindropTitle: highlight.raindrop?.title,
+              raindropLink: highlight.raindrop?.link,
               note: highlight.note,
               color: highlight.color,
               created: highlight.created,
+              lastUpdate: highlight.lastUpdate,
               title: highlight.title,
               tags: highlight.tags,
-              link: highlight.link
+              link: highlight.link,
+              domain: highlight.domain,
+              excerpt: highlight.excerpt
             }
           }))
         };
