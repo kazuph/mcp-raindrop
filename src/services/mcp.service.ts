@@ -91,14 +91,17 @@ this.server.resource(
         const highlights = await raindropService.getAllHighlights();
         return {
           contents: highlights.map(highlight => ({
-            uri: '${uri.href}',
+            uri: `${uri.href}/${highlight._id}`,
             text: highlight.text,
             metadata: {
               id: highlight._id,
               raindropId: highlight.raindrop?._id,
               note: highlight.note,
               color: highlight.color,
-              created: highlight.created
+              created: highlight.created,
+              title: highlight.title,
+              tags: highlight.tags,
+              link: highlight.link
             }
           }))
         };

@@ -214,20 +214,22 @@ class RaindropService {
   async getHighlights(raindropId: number): Promise<Highlight[]> {
     try {
       const { data } = await this.api.get(`/highlights/${raindropId}`);
-      if (!data || !data.items) {
-        throw new Error('Invalid response structure from Raindrop.io API');
+      
+      if (data.contents && Array.isArray(data.contents)) {
+        return data.contents.map((item: any) => this.mapHighlightData({
+          ...item, 
+          raindrop: item.raindrop || { _id: raindropId }
+        })).filter(Boolean);
       }
-      return data.items.map((item: any) => ({
-        _id: item._id,
-        text: item.text,
-        note: item.note,
-        color: item.color,
-        created: item.created,
-        lastUpdate: item.lastUpdate,
-        raindrop: {
-          _id: item.raindrop?._id || raindropId // Ensure raindropId is always included
-        }
-      }));
+      
+      if (data.items && Array.isArray(data.items)) {
+        return data.items.map((item: any) => this.mapHighlightData({
+          ...item, 
+          raindrop: item.raindrop || { _id: raindropId }
+        })).filter(Boolean);
+      }
+      
+      return [];
     } catch (error) {
       if (error instanceof AxiosError && error.response?.status === 404) {
         return []; // Return empty array if no highlights found
@@ -236,59 +238,74 @@ class RaindropService {
     }
   }
 
-  async getHighlightsByCollection(collectionId: number): Promise<Highlight[]> {
+  async getAllHighlights(): Promise<Highlight[]> {
     try {
-      // Verify collection exists first
-      const collection = await this.getCollection(collectionId);
-      if (!collection) {
-        throw new Error(`Collection ${collectionId} not found`);
+      // Use the proper endpoint for getting all user highlights
+      const { data } = await this.api.get('/user/highlights');
+      
+      // Handle case when API returns {contents: []} structure
+      if (data.contents && Array.isArray(data.contents)) {
+        return data.contents.map(this.mapHighlightData).filter(Boolean);
       }
-
-      // Get all bookmark IDs from the collection
-      const { items: raindrops } = await this.getBookmarks({ 
-        collection: collectionId,
-        perPage: 50 // Maximum allowed per page
-      });
-
-      if (!raindrops?.length) {
-        return [];
+      
+      // Handle standard response format
+      if (data.items && Array.isArray(data.items)) {
+        return data.items.map(this.mapHighlightData).filter(Boolean);
       }
-
-      // Get all raindrop IDs
-      const raindropIds = raindrops.map(raindrop => raindrop._id);
-
-      // Use the /raindrops/multiple endpoint to get highlights
-      const { data } = await this.api.post('/raindrops/multiple', {
-        ids: raindropIds
-      });
-
-      if (!data?.items) {
-        throw new Error('Invalid response structure from Raindrop.io API');
-      }
-
-      // Extract and format highlights from the response
-      const allHighlights: Highlight[] = [];
-      for (const raindrop of data.items) {
-        if (raindrop.highlights?.length) {
-          const highlights = raindrop.highlights.map((highlight: any) => ({
-            _id: highlight._id,
-            text: highlight.text,
-            note: highlight.note,
-            color: highlight.color,
-            created: highlight.created,
-            lastUpdate: highlight.lastUpdate,
-            raindrop: {
-              _id: raindrop._id
-            }
-          }));
-          allHighlights.push(...highlights);
-        }
-      }
-
-      return allHighlights;
+      
+      // If neither structure is found, return empty array
+      return [];
     } catch (error) {
       if (error instanceof AxiosError && error.response?.status === 404) {
-        throw new Error(`Collection ${collectionId} not found`);
+        return []; // Return empty array if endpoint not found
+      }
+      throw new Error(`Failed to get all highlights: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Helper method to map highlight data consistently
+  private mapHighlightData(item: any): Highlight | null {
+    if (!item || !item.raindrop?._id) {
+      return null;
+    }
+    
+    return {
+      _id: item._id,
+      text: item.text || '',
+      note: item.note || '',
+      color: item.color || '',
+      created: item.created,
+      lastUpdate: item.lastUpdate,
+      title: item.title || '',
+      tags: item.tags || [],
+      link: item.link || '',
+      raindrop: {
+        _id: item.raindrop?._id,
+        title: item.raindrop?.title || '',
+        link: item.raindrop?.link || '',
+        collection: item.raindrop?.collection || { $id: 0 }
+      }
+    };
+  }
+
+  async getHighlightsByCollection(collectionId: number): Promise<Highlight[]> {
+    try {
+      // Use the correct endpoint according to the Raindrop.io API
+      const { data } = await this.api.get(`/highlights/${collectionId}`);
+      
+      if (data.contents && Array.isArray(data.contents)) {
+        return data.contents.map(this.mapHighlightData).filter(Boolean);
+      }
+      
+      if (data.items && Array.isArray(data.items)) {
+        return data.items.map(this.mapHighlightData).filter(Boolean);
+      }
+      
+      return [];
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 404) {
+        // Collection might not exist or has no highlights
+        return [];
       }
       throw new Error(`Failed to get highlights for collection ${collectionId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -309,37 +326,6 @@ class RaindropService {
 
   async deleteHighlight(id: number): Promise<void> {
     await this.api.delete(`/highlights/${id}`);
-  }
-
-  async getAllHighlights(): Promise<Highlight[]> {
-    try {
-      const { data } = await this.api.get('/highlights');
-      if (!data || !data.items) {
-        throw new Error('Invalid response structure from Raindrop.io API');
-      }
-      // Ensure each highlight has the required fields
-      return data.items.map((item: any) => {
-        if (!item || !item.raindrop?._id) {
-          throw new Error('Invalid highlight structure: missing raindrop ID');
-        }
-        return {
-          _id: item._id,
-          text: item.text || '',
-          note: item.note,
-          color: item.color,
-          created: item.created,
-          lastUpdate: item.lastUpdate,
-          raindrop: {
-            _id: item.raindrop._id
-          }
-        };
-      });
-    } catch (error) {
-      if (error instanceof AxiosError && error.response?.status === 404) {
-        return []; // Return empty array if no highlights found
-      }
-      throw error;
-    }
   }
 
   // Search

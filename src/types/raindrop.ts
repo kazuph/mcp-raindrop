@@ -96,15 +96,13 @@ export type Bookmark = {
 export type Highlight = {
   _id: number;
   text: string;
-  note?: string;
-  color?: string;
+  title: string;
+  color: string;
+  note: string;
   created: string;
   lastUpdate?: string;
-  raindrop?: {
-    _id: number;
-    title?: string;
-    link?: string;
-  };
+  tags: string[];
+  link: string;
 };
 
 export type SearchParams = {
