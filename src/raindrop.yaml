@@ -190,6 +190,10 @@ paths:
     delete:
       operationId: deleteCollection
       summary: Delete a collection
+  /tags:
+    get:
+      operationId: getAllTags
+      summary: Get all tags
   /file:
     post:
       operationId: uploadFile
