@@ -1,5 +1,12 @@
 # CLAUDE.md - Raindrop MCP Project Guidelines
 
+## External References
+- Raindrop.io API Documentation: [https://developer.raindrop.io](https://developer.raindrop.io)
+- MCP Documentation: [https://modelcontextprotocol.io/](https://modelcontextprotocol.io/)
+- [Model Context Protocol with LLMs](https://modelcontextprotocol.io/llms-full.txt)
+- [MCP Typescript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
+- [example MCP servers repository is here](https://github.com/modelcontextprotocol/servers)
+
 ## Commands
 - Build/Run: `bun run start` (or `bun run src/index.ts`)
 - Development: `bun run dev` (watch mode)
@@ -36,7 +43,7 @@
 ## MCP Resources
 - Collections: `collections://all` and `collections://{parentId}/children`
 - Tags: `tags://all`
-- Highlights: `highlights://all`
+- Highlights: `highlights://all`, `highlights://all?page={pageNumber}&perPage={perPageCount}`, and `highlights://{raindropId}`
 - User info: `user://info`
 - User stats: `user://stats`
 
@@ -126,18 +133,22 @@
 - **Description**: Retrieves highlights for a specific raindrop.
 - **Parameters**:
   - `raindropId` (number): ID of the raindrop to retrieve highlights for.
-- **Response**: Returns a list of highlights with text, color, notes, and timestamps.
+- **Response**: Returns a list of highlights with text, color, notes, timestamps, and additional metadata fields (title, tags, link, domain, and excerpt).
 
 #### `getAllHighlights`
-- **Description**: Retrieves all highlights across all raindrops.
-- **Parameters**: None
-- **Response**: Returns a list of all highlights with text, color, notes, and timestamps.
+- **Description**: Retrieves all highlights across all raindrops with pagination support.
+- **Parameters**: 
+  - `page` (number, optional): Page number for pagination.
+  - `perPage` (number, optional): Items per page (default 50).
+- **Response**: Returns a list of all highlights with text, color, notes, timestamps, and additional metadata (title, tags, link, domain, excerpt, and last update).
 
 #### `getHighlightsByCollection`
-- **Description**: Retrieves all highlights for bookmarks in a specific collection.
+- **Description**: Retrieves all highlights for bookmarks in a specific collection with pagination support.
 - **Parameters**:
   - `collectionId` (number): ID of the collection to retrieve highlights from.
-- **Response**: Returns a list of highlights with associated raindrop IDs.
+  - `page` (number, optional): Page number for pagination.
+  - `perPage` (number, optional): Items per page (default 50).
+- **Response**: Returns a list of highlights with associated raindrop IDs and additional metadata (title, tags, link, domain, excerpt, and last update).
 
 #### `updateCollection`
 - **Description**: Update an existing collection.

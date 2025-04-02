@@ -213,18 +213,19 @@ class RaindropService {
   // Highlights
   async getHighlights(raindropId: number): Promise<Highlight[]> {
     try {
-      // According to the documentation, the endpoint should be /raindrop/{id}/highlights
-      const { data } = await this.api.get(`/raindrop/${raindropId}`);
+      // According to the documentation, the endpoint for a specific raindrop's highlights is /raindrop/{id}/highlights
+      const { data } = await this.api.get(`/raindrop/${raindropId}/highlights`);
       
-      // Handle various response formats
-      if (data.items && Array.isArray(data.items)) {
+      // Check for items array in response
+      if (data && Array.isArray(data.items)) {
         return data.items.map((item: any) => this.mapHighlightData({
           ...item, 
           raindrop: item.raindrop || { _id: raindropId }
         })).filter(Boolean);
       }
       
-      if (data.result && Array.isArray(data.result)) {
+      // Also try result array format
+      if (data && Array.isArray(data.result)) {
         return data.result.map((item: any) => this.mapHighlightData({
           ...item, 
           raindrop: item.raindrop || { _id: raindropId }
@@ -242,25 +243,28 @@ class RaindropService {
 
   async getAllHighlights(page = 0, perPage = 25): Promise<Highlight[]> {
     try {
-      // Use the correct endpoint with pagination parameters as specified in the documentation
-      const { data } = await this.api.get('/highlights', {
+      // According to the documentation, the correct endpoint is /user/highlights
+      const { data } = await this.api.get('/user/highlights', {
         params: {
           page,
           perpage: perPage // Note the lowercase "perpage" as specified in the API docs
         }
       });
       
-      // Check for the result/items structure as shown in the API documentation
-      if (data.result && Array.isArray(data.items)) {
+      // Debug the response structure (consider capturing this for debugging without console.log)
+      // If available, we can use the mcp inspector to view this data
+      
+      // Check for items array in response
+      if (data && Array.isArray(data.items)) {
         return data.items.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
       }
       
-      // Also handle case when API returns {contents: []} structure for backward compatibility
-      if (data.contents && Array.isArray(data.contents)) {
+      // Handle case when API returns {contents: []} structure
+      if (data && data.contents && Array.isArray(data.contents)) {
         return data.contents.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
       }
       
-      // If neither structure is found, return empty array
+      // If we got a response but neither structure is found, return empty array
       return [];
     } catch (error) {
       if (error instanceof AxiosError && error.response?.status === 404) {
