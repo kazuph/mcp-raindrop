@@ -1,18 +1,28 @@
 import axios from 'axios';
-import config from '../../config/config.js';
+import { config } from 'dotenv';
+config(); // Load .env file
+
+// Check if the token exists
+const raindropAccessToken = process.env.RAINDROP_ACCESS_TOKEN;
+if (!raindropAccessToken) {
+  // Use more graceful handling in production
+  throw new Error('RAINDROP_ACCESS_TOKEN environment variable is required. Please check your .env file or environment settings.');
+}
+
+
 
 async function testRaindropAPI() {
   const api = axios.create({
     baseURL: 'https://api.raindrop.io/rest/v1',
     headers: {
-      Authorization: `Bearer ${config.raindropAccessToken}`,
+      Authorization: `Bearer ${raindropAccessToken}`,
       'Content-Type': 'application/json',
     },
   });
 
   try {
     // Test different endpoints
-    const userHighlightsResponse = await api.get('/user/highlights');
+    const userHighlightsResponse = await api.get('/highlights');
     console.log('User Highlights Response:', JSON.stringify(userHighlightsResponse.data, null, 2));
 
     const highlightsResponse = await api.get('/highlights');

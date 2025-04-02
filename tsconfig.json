@@ -3,7 +3,7 @@
       // Environment setup & latest features
       "lib": ["esnext"],
       "forceConsistentCasingInFileNames": true,
-      "target": "ES2022",
+      "target": "esnext",
       "module": "NodeNext",
       "moduleDetection": "force",
       "esModuleInterop": true,

@@ -1,11 +1,17 @@
 import axios, { Axios, AxiosError } from 'axios';
-import config from '../config/config.js';
-
+// Import dotenv at the entry point
+import { config } from 'dotenv';
+config(); // Load .env file
 // Import shared types
 import type { Collection, Bookmark, Highlight, SearchParams } from '../types/raindrop.js';
 
 
-
+// Check if the token exists
+const raindropAccessToken = process.env.RAINDROP_ACCESS_TOKEN;
+if (!raindropAccessToken) {
+  // Use more graceful handling in production
+  throw new Error('RAINDROP_ACCESS_TOKEN environment variable is required. Please check your .env file or environment settings.');
+}
 
 class RaindropService {
   private api: Axios;
@@ -14,7 +20,7 @@ class RaindropService {
     this.api = axios.create({
       baseURL: 'https://api.raindrop.io/rest/v1',
       headers: {
-        Authorization: `Bearer ${config.raindropAccessToken}`,
+        Authorization: `Bearer ${raindropAccessToken}`,
         'Content-Type': 'application/json',
       },
     });
@@ -243,18 +249,15 @@ class RaindropService {
 
   async getAllHighlights(page = 0, perPage = 25): Promise<Highlight[]> {
     try {
-      // According to the documentation, the correct endpoint is /user/highlights
-      const { data } = await this.api.get('/user/highlights', {
+      // Use the correct endpoint based on testing: /highlights (not /user/highlights)
+      const { data } = await this.api.get('/highlights', {
         params: {
           page,
           perpage: perPage // Note the lowercase "perpage" as specified in the API docs
         }
       });
       
-      // Debug the response structure (consider capturing this for debugging without console.log)
-      // If available, we can use the mcp inspector to view this data
-      
-      // Check for items array in response
+      // Map the API response to our Highlight type
       if (data && Array.isArray(data.items)) {
         return data.items.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
       }

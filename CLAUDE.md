@@ -12,7 +12,7 @@
 - Development: `bun run dev` (watch mode)
 - Type checking: `bun run type-check`
 - Tests: `bun run test`
-- Run single test: `bun test src/services/__tests__/mcp.service.test.ts`
+- Run single test: `bun test src/tests/mcp.service.test.ts`
 - Test with coverage: `bun run test:coverage`
 
 ## Code Style
@@ -31,11 +31,11 @@
 - Type definitions: Prefer interfaces for object types
 - Async: Use async/await pattern consistently
 - Testing: Use Vitest with mocks for dependencies
-- Tests should be co-located with source files in `__tests__` directories
+- Tests should be co-located with source files in `src/tests` directory
 
 ## Project Structure
 - Source code in `src/` directory
-- Tests co-located with source files in `__tests__` directories
+- Tests co-located with source files in `src/tests` directory
 - Configuration in `src/config`
 - Types in `src/types`
 - Services in `src/services`

@@ -1,7 +1,9 @@
 import { createRaindropServer } from './services/mcp.service.js';
 import { mcpHttpService } from './services/mcp-http.service.js';
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-
+// At the entry point of your application
+import { config } from 'dotenv';
+config(); // Load .env file
 async function main() {
   try {
     // For HTTP transport when explicitly configured
