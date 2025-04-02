@@ -36,7 +36,7 @@
 ## Project Structure
 - Source code in `src/` directory
 - Tests co-located with source files in `src/tests` directory
-- Configuration in `src/config`
+- Configuration in .env
 - Types in `src/types`
 - Services in `src/services`
 
