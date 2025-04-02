@@ -214,7 +214,7 @@ class RaindropService {
   async getHighlights(raindropId: number): Promise<Highlight[]> {
     try {
       // According to the documentation, the endpoint should be /raindrop/{id}/highlights
-      const { data } = await this.api.get(`/raindrop/${raindropId}/highlights`);
+      const { data } = await this.api.get(`/raindrop/${raindropId}`);
       
       // Handle various response formats
       if (data.items && Array.isArray(data.items)) {
@@ -240,19 +240,24 @@ class RaindropService {
     }
   }
 
-  async getAllHighlights(): Promise<Highlight[]> {
+  async getAllHighlights(page = 0, perPage = 25): Promise<Highlight[]> {
     try {
-      // According to the documentation, this should be the endpoint for all highlights
-      const { data } = await this.api.get('/highlights');
+      // Use the correct endpoint with pagination parameters as specified in the documentation
+      const { data } = await this.api.get('/highlights', {
+        params: {
+          page,
+          perpage: perPage // Note the lowercase "perpage" as specified in the API docs
+        }
+      });
       
-      // Handle case when API returns {contents: []} structure
-      if (data.contents && Array.isArray(data.contents)) {
-        return data.contents.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
+      // Check for the result/items structure as shown in the API documentation
+      if (data.result && Array.isArray(data.items)) {
+        return data.items.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
       }
       
-      // Handle standard response format
-      if (data.items && Array.isArray(data.items)) {
-        return data.items.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
+      // Also handle case when API returns {contents: []} structure for backward compatibility
+      if (data.contents && Array.isArray(data.contents)) {
+        return data.contents.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
       }
       
       // If neither structure is found, return empty array
@@ -302,7 +307,7 @@ class RaindropService {
   async getHighlightsByCollection(collectionId: number): Promise<Highlight[]> {
     try {
       // According to the API docs, the endpoint for highlights by collection is /highlights/collection/{id}
-      const { data } = await this.api.get(`/highlights/collection/${collectionId}`);
+      const { data } = await this.api.get(`/highlights/${collectionId}`);
       
       if (data.contents && Array.isArray(data.contents)) {
         return data.contents.map((item: any) => this.mapHighlightData(item)).filter(Boolean);

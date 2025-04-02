@@ -805,10 +805,13 @@ this.server.resource(
     this.server.tool(
       'getAllHighlights',
       'Get all highlights across all bookmarks',
-      {},
-      async () => {
+      {
+        page: z.number().optional().describe('Page number, starting from 0'),
+        perPage: z.number().optional().describe('Number of highlights per page (max 50)')
+      },
+      async ({ page, perPage }) => {
         try {
-          const highlights = await raindropService.getAllHighlights();
+          const highlights = await raindropService.getAllHighlights(page, perPage);
           return {
             content: highlights.map(highlight => ({
               type: "text",
@@ -828,7 +831,11 @@ this.server.resource(
                 domain: highlight.domain,
                 excerpt: highlight.excerpt
               }
-            }))
+            })),
+            metadata: {
+              page: page || 0,
+              perPage: perPage || 25
+            }
           };
         } catch (error) {
           throw new Error(`Failed to get all highlights: ${(error as Error).message}`);
