@@ -220,7 +220,7 @@ class RaindropService {
   async getHighlights(raindropId: number): Promise<Highlight[]> {
     try {
       // According to the documentation, the endpoint for a specific raindrop's highlights is /raindrop/{id}/highlights
-      const { data } = await this.api.get('/raindrop/${raindropId}');
+      const { data } = await this.api.get(`/raindrop/${raindropId}/highlights`);
       
       // Check for items array in response
       if (data && Array.isArray(data.items)) {
@@ -323,12 +323,8 @@ class RaindropService {
       return null;
     }
     
-    // According to API docs, highlights should have a raindrop property
-    // But handle the case where it might be missing
-   // const raindropId = item.raindrop?._id;
-   // if (!raindropId) {
-    //  return null;
-   // }
+    // Get raindrop ID from item if available
+    const raindropId = item.raindrop?._id || 0;
     
     return {
       _id: item._id,

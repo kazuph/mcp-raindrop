@@ -3,13 +3,30 @@ import { z } from "zod";
 import raindropService from './raindrop.service.js';
 //import type { Collection, Bookmark, SearchParams } from "../types/raindrop.js";
 
+/**
+ * Raindrop.io MCP Service
+ * 
+ * This service implements the Model Context Protocol (MCP) for the Raindrop.io bookmarking service.
+ * It provides both resources and tools for working with Raindrop.io data.
+ * 
+ * Resources follow URI patterns like:
+ * - collections://all - All collections
+ * - collections://{parentId}/children - Child collections
+ * - tags://all - All tags
+ * - highlights://all - All highlights
+ * - user://info - User information
+ * - user://stats - User statistics
+ * 
+ * For debugging with Inspector, see:
+ * https://modelcontextprotocol.io/docs/tools/inspector
+ */
 export class RaindropMCPService {
   private server: McpServer;
 
   constructor() {
     this.server = new McpServer({
       name: 'raindrop-mcp',
-      version: '1.0.0',
+      version: '1.1.0',
       description: 'MCP Server for Raindrop.io bookmarking service',
       capabilities: {
         logging: false // Keep logging off for STDIO compatibility
@@ -82,6 +99,27 @@ this.server.resource(
         };
       }
     );
+
+    // Tags filtered by collection
+    this.server.resource(
+      'collection-tags',
+      new ResourceTemplate('tags://collection/{collectionId}', { list: undefined }),
+      async (uri, { collectionId }) => {
+        const tags = await raindropService.getTagsByCollection(Number(collectionId));
+        return {
+          contents: tags.map(tag => ({
+            uri: `${uri.href}/${tag._id}`,
+            text: tag._id,
+            metadata: {
+              count: tag.count
+            }
+          })),
+          metadata: {
+            collectionId: Number(collectionId)
+          }
+        };
+      }
+    );
   
     // Convert getAllHighlights to a resource
     this.server.resource(
@@ -109,6 +147,118 @@ this.server.resource(
               excerpt: highlight.excerpt
             }
           }))
+        };
+      }
+    );
+
+    // Highlights for a specific bookmark
+    this.server.resource(
+      'raindrop-highlights',
+      new ResourceTemplate('highlights://raindrop/{raindropId}', { list: undefined }),
+      async (uri, { raindropId }) => {
+        const highlights = await raindropService.getHighlights(Number(raindropId));
+        return {
+          contents: highlights.map(highlight => ({
+            uri: `${uri.href}/${highlight._id}`,
+            text: highlight.text,
+            metadata: {
+              id: highlight._id,
+              raindropId: highlight.raindrop?._id,
+              raindropTitle: highlight.raindrop?.title,
+              raindropLink: highlight.raindrop?.link,
+              note: highlight.note,
+              color: highlight.color,
+              created: highlight.created,
+              lastUpdate: highlight.lastUpdate,
+              tags: highlight.tags
+            }
+          })),
+          metadata: {
+            raindropId: Number(raindropId)
+          }
+        };
+      }
+    );
+
+    // Highlights filtered by collection
+    this.server.resource(
+      'collection-highlights',
+      new ResourceTemplate('highlights://collection/{collectionId}', { list: undefined }),
+      async (uri, { collectionId }) => {
+        const highlights = await raindropService.getHighlightsByCollection(Number(collectionId));
+        return {
+          contents: highlights.map(highlight => ({
+            uri: `${uri.href}/${highlight._id}`,
+            text: highlight.text,
+            metadata: {
+              id: highlight._id,
+              raindropId: highlight.raindrop?._id,
+              raindropTitle: highlight.raindrop?.title,
+              raindropLink: highlight.raindrop?.link,
+              note: highlight.note,
+              color: highlight.color,
+              created: highlight.created,
+              lastUpdate: highlight.lastUpdate,
+              tags: highlight.tags
+            }
+          })),
+          metadata: {
+            collectionId: Number(collectionId)
+          }
+        };
+      }
+    );
+
+    // Bookmarks in a collection
+    this.server.resource(
+      'collection-bookmarks',
+      new ResourceTemplate('bookmarks://collection/{collectionId}', { list: undefined }),
+      async (uri, { collectionId }) => {
+        const result = await raindropService.getBookmarks({ collection: Number(collectionId) });
+        return {
+          contents: result.items.map(bookmark => ({
+            uri: `bookmarks://raindrop/${bookmark._id}`,
+            text: bookmark.title || bookmark.link,
+            metadata: {
+              id: bookmark._id,
+              link: bookmark.link,
+              excerpt: bookmark.excerpt,
+              tags: bookmark.tags,
+              created: bookmark.created,
+              lastUpdate: bookmark.lastUpdate,
+              type: bookmark.type
+            }
+          })),
+          metadata: {
+            collectionId: Number(collectionId),
+            count: result.count
+          }
+        };
+      }
+    );
+
+    // Specific bookmark by ID
+    this.server.resource(
+      'bookmark',
+      new ResourceTemplate('bookmarks://raindrop/{id}', { list: undefined }),
+      async (uri, { id }) => {
+        const bookmark = await raindropService.getBookmark(Number(id));
+        return {
+          contents: [{
+            uri: bookmark.link,
+            text: bookmark.title || "Untitled Bookmark",
+            metadata: {
+              id: bookmark._id,
+              link: bookmark.link,
+              excerpt: bookmark.excerpt,
+              tags: bookmark.tags,
+              collectionId: bookmark.collection?.$id,
+              created: bookmark.created,
+              lastUpdate: bookmark.lastUpdate,
+              type: bookmark.type,
+              important: bookmark.important
+            }
+          }]
         };
       }
     );
@@ -153,6 +303,16 @@ this.server.resource(
   
 }
 
+  /**
+   * Initialize all MCP tools for interacting with Raindrop.io
+   * Tools are organized by category:
+   * - Collection operations
+   * - Bookmark operations
+   * - Tag operations
+   * - Highlight operations
+   * - User operations
+   * - Import/Export operations
+   */
   private initializeTools() {
     // Collection operations
     this.server.tool(
@@ -647,6 +807,112 @@ this.server.resource(
     );
 
     this.server.tool(
+      'bulkMoveBookmarks',
+      'Move multiple bookmarks to another collection',
+      {
+        ids: z.array(z.number()).describe('List of bookmark IDs to move'),
+        collectionId: z.number().describe('Target collection ID')
+      },
+      async ({ ids, collectionId }) => {
+        try {
+          await raindropService.batchUpdateBookmarks(ids, { collection: collectionId });
+          return {
+            content: [{
+              type: "text",
+              text: `Successfully moved ${ids.length} bookmarks to collection ${collectionId}.`
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to move bookmarks: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'bulkTagBookmarks',
+      'Add or remove tags from multiple bookmarks',
+      {
+        ids: z.array(z.number()).describe('List of bookmark IDs'),
+        tags: z.array(z.string()).describe('Tags to apply'),
+        operation: z.enum(['add', 'remove']).describe('Whether to add or remove the specified tags')
+      },
+      async ({ ids, tags, operation }) => {
+        try {
+          // For adding tags, we need to first get existing tags for each bookmark
+          // and then merge them with new tags to prevent overwriting
+          if (operation === 'add') {
+            // Get all bookmarks first
+            const bookmarks = await Promise.all(
+              ids.map(id => raindropService.getBookmark(id))
+            );
+            
+            // Update each bookmark with merged tags
+            await Promise.all(
+              bookmarks.map(bookmark => {
+                const existingTags = bookmark.tags || [];
+                const mergedTags = [...new Set([...existingTags, ...tags])];
+                return raindropService.updateBookmark(bookmark._id, { tags: mergedTags });
+              })
+            );
+          }
+          // For removing tags, we need to filter out the specified tags
+          else {
+            // Get all bookmarks first
+            const bookmarks = await Promise.all(
+              ids.map(id => raindropService.getBookmark(id))
+            );
+            
+            // Update each bookmark with filtered tags
+            await Promise.all(
+              bookmarks.map(bookmark => {
+                const existingTags = bookmark.tags || [];
+                const filteredTags = existingTags.filter(tag => !tags.includes(tag));
+                return raindropService.updateBookmark(bookmark._id, { tags: filteredTags });
+              })
+            );
+          }
+          
+          return {
+            content: [{
+              type: "text",
+              text: `Successfully ${operation === 'add' ? 'added' : 'removed'} tags [${tags.join(', ')}] ${operation === 'add' ? 'to' : 'from'} ${ids.length} bookmarks.`
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to ${operation} tags: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'batchDeleteBookmarks',
+      'Delete multiple bookmarks at once',
+      {
+        ids: z.array(z.number()).describe('List of bookmark IDs to delete'),
+        permanent: z.boolean().optional().describe('Permanently delete (skip trash)')
+      },
+      async ({ ids, permanent }) => {
+        try {
+          await Promise.all(
+            ids.map(id => permanent ? 
+              raindropService.permanentDeleteBookmark(id) : 
+              raindropService.deleteBookmark(id)
+            )
+          );
+          
+          return {
+            content: [{
+              type: "text",
+              text: `Successfully ${permanent ? 'permanently ' : ''}deleted ${ids.length} bookmarks.`
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to batch delete bookmarks: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
       'setReminder',
       'Set a reminder for a bookmark',
       {
@@ -716,6 +982,57 @@ this.server.resource(
           };
         } catch (error) {
           throw new Error(`Failed to get tags: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'renameTag',
+      'Rename a tag across all bookmarks or in a specific collection',
+      {
+        oldName: z.string().describe('Current tag name'),
+        newName: z.string().describe('New tag name'),
+        collectionId: z.number().optional().describe('Collection ID (optional)')
+      },
+      async ({ oldName, newName, collectionId }) => {
+        try {
+          const result = await raindropService.renameTag(collectionId, oldName, newName);
+          return {
+            content: [{
+              type: "text",
+              text: `Successfully renamed tag "${oldName}" to "${newName}"${collectionId ? ` in collection ${collectionId}` : ''}.`,
+              metadata: {
+                success: result.result
+              }
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to rename tag: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'deleteTag',
+      'Remove a tag from all bookmarks or in a specific collection',
+      {
+        tag: z.string().describe('Tag to delete'),
+        collectionId: z.number().optional().describe('Collection ID (optional)')
+      },
+      async ({ tag, collectionId }) => {
+        try {
+          const result = await raindropService.deleteTags(collectionId, [tag]);
+          return {
+            content: [{
+              type: "text",
+              text: `Successfully deleted tag "${tag}"${collectionId ? ` from collection ${collectionId}` : ''}.`,
+              metadata: {
+                success: result.result
+              }
+            }]
+          };
+        } catch (error) {
+          throw new Error(`Failed to delete tag: ${(error as Error).message}`);
         }
       }
     );
@@ -811,7 +1128,7 @@ this.server.resource(
       },
       async ({ page, perPage }) => {
         try {
-          const highlights = await raindropService.getAllHighlights(page, perPage);
+          const highlights = await raindropService.getAllHighlightsByPage(page, perPage);
           return {
             content: highlights.map(highlight => ({
               type: "text",
@@ -839,6 +1156,41 @@ this.server.resource(
           };
         } catch (error) {
           throw new Error(`Failed to get all highlights: ${(error as Error).message}`);
+        }
+      }
+    );
+
+    this.server.tool(
+      'getHighlightsByCollection',
+      'Get highlights for bookmarks in a specific collection',
+      {
+        collectionId: z.number().describe('Collection ID')
+      },
+      async ({ collectionId }) => {
+        try {
+          const highlights = await raindropService.getHighlightsByCollection(collectionId);
+          return {
+            content: highlights.map(highlight => ({
+              type: "text",
+              text: highlight.text,
+              metadata: {
+                id: highlight._id,
+                raindropId: highlight.raindrop?._id,
+                raindropTitle: highlight.raindrop?.title,
+                raindropLink: highlight.raindrop?.link,
+                note: highlight.note,
+                color: highlight.color,
+                created: highlight.created,
+                lastUpdate: highlight.lastUpdate,
+                tags: highlight.tags
+              }
+            })),
+            metadata: {
+              collectionId
+            }
+          };
+        } catch (error) {
+          throw new Error(`Failed to get highlights by collection: ${(error as Error).message}`);
         }
       }
     );
