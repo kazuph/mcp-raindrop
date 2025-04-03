@@ -190,10 +190,6 @@ paths:
     delete:
       operationId: deleteCollection
       summary: Delete a collection
-  /tags:
-    get:
-      operationId: getAllTags
-      summary: Get all tags
   /file:
     post:
       operationId: uploadFile
@@ -244,8 +240,8 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Highlight'
-    
+                      $ref: "#/components/schemas/Highlight"
+
   /highlights:
     get:
       operationId: getAllHighlights
@@ -276,8 +272,8 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Highlight'
-    
+                      $ref: "#/components/schemas/Highlight"
+
     post:
       operationId: addHighlightToBookmark
       summary: Add a new highlight to a bookmark
@@ -347,7 +343,7 @@ paths:
       summary: Get all tags used in bookmarks
       description: Retrieves all unique tags used in the user's bookmarks.
       responses:
-        '200':
+        "200":
           description: A list of all tags.
           content:
             application/json:
@@ -385,7 +381,7 @@ paths:
                   type: string
                   description: The new tag name.
       responses:
-        '200':
+        "200":
           description: Tag renamed successfully.
 
     delete:
@@ -400,7 +396,7 @@ paths:
           schema:
             type: string
       responses:
-        '204':
+        "204":
           description: Tag deleted successfully.
   /highlights/{collectionId}:
     get:
@@ -438,7 +434,7 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Highlight'
+                      $ref: "#/components/schemas/Highlight"
 
   /raindrop/{id}/highlights:
     put:
@@ -495,7 +491,7 @@ paths:
                       highlights:
                         type: array
                         items:
-                          $ref: '#/components/schemas/Highlight'
+                          $ref: "#/components/schemas/Highlight"
   /import:
     post:
       operationId: importBookmarks
@@ -547,7 +543,7 @@ paths:
                           type: integer
                         link:
                           type: string
-  
+
   /import/url:
     post:
       operationId: importFromUrl
@@ -587,7 +583,7 @@ paths:
                       _id:
                         type: string
                         description: Import job ID
-  
+
   /backups:
     get:
       operationId: getBackups
@@ -616,7 +612,7 @@ paths:
                         size:
                           type: integer
                           description: Size in bytes
-    
+
     post:
       operationId: createBackup
       summary: Create a new backup
@@ -639,7 +635,7 @@ paths:
                       created:
                         type: string
                         format: date-time
-  
+
   /backup/{id}:
     get:
       operationId: downloadBackup
@@ -660,7 +656,7 @@ paths:
               schema:
                 type: string
                 format: binary
-    
+
     delete:
       operationId: deleteBackup
       summary: Delete a backup
