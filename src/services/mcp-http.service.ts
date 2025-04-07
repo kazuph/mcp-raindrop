@@ -1,10 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { HttpServerTransport } from "@modelcontextprotocol/sdk/server/http.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { createRaindropServer } from './mcp.service.js';
 
 export class MCPHttpService {
   private mcpServer: McpServer | null = null;
-  private httpTransport: HttpServerTransport | null = null;
+  private httpTransport: SSEServerTransport | null = null;
   private port: number;
 
   constructor(port = 3000) {
@@ -18,7 +18,7 @@ export class MCPHttpService {
       this.mcpServer = server;
       
       // Create HTTP transport
-      this.httpTransport = new HttpServerTransport({
+      this.httpTransport = new SSEServerTransport({
         port: this.port,
         corsOrigins: ['*'], // Allow all origins in development
         debug: true, // Enable debug mode for easier troubleshooting
