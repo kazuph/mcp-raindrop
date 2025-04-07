@@ -78,7 +78,27 @@
 				"cwd": "${workspaceFolder}"
 			},
 			"presentation": {
-				"reveal": "silent",
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"type": "shell",
+			"label": "bun: install",
+			"detail": "Installs modules to the latest version",
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
+			"command": "bun",
+			"args": [
+				"install"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
 				"panel": "shared"
 			}
 		},
