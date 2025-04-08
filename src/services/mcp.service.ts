@@ -23,18 +23,23 @@ import raindropService from './raindrop.service.js';
 export class RaindropMCPService {
   private server: McpServer;
 
+  // Ensure the server is properly initialized and connected
   constructor() {
     this.server = new McpServer({
-      name: 'raindrop-mcp',
-      version: '1.1.0',
-      description: 'MCP Server for Raindrop.io bookmarking service',
-      capabilities: {
-        logging: false // Keep logging off for STDIO compatibility
-      }
+        name: 'raindrop-mcp',
+        version: '1.1.0',
+        description: 'MCP Server for Raindrop.io bookmarking service',
+        capabilities: {
+            logging: false // Keep logging off for STDIO compatibility
+        }
     });
 
+    // Initialize resources and tools
     this.initializeResources();
     this.initializeTools();
+
+    // We don't connect the server here as it requires a transport
+    // The connection will be established when the server is used
   }
 
 private initializeResources(){
