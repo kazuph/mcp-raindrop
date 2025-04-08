@@ -1,5 +1,5 @@
 import { createRaindropServer } from './services/mcp.service.js';
-import { mcpHttpService } from './services/mcp-http.service.js';
+//import { mcpHttpService } from './services/mcp-http.service.js';
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 // At the entry point of your application
 import { config } from 'dotenv';
@@ -9,12 +9,12 @@ async function main() {
     // For HTTP transport when explicitly configured
     if (process.env.TRANSPORT_TYPE === 'http') {
 
-      const { mcpHttpService } = await import('./services/mcp-http.service.js');
-      await mcpHttpService.start();
+ //     const { mcpHttpService } = await import('./services/mcp-http.service.js');
+ //     await mcpHttpService.start();
       
       // Handle graceful shutdown for HTTP
       const httpShutdown = async () => {
-        await mcpHttpService.stop();
+ //       await mcpHttpService.stop();
         process.exit(0);
       };
       
