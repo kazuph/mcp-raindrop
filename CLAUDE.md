@@ -4,8 +4,8 @@
 - Raindrop.io API Documentation: [https://developer.raindrop.io](https://developer.raindrop.io)
 - MCP Documentation: [https://modelcontextprotocol.io/](https://modelcontextprotocol.io/)
 - [Model Context Protocol with LLMs](https://modelcontextprotocol.io/llms-full.txt)
-- [MCP Typescript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
-- [example MCP servers repository is here](https://github.com/modelcontextprotocol/servers)
+- [MCP Typescript SDK v1.9.0](https://github.com/modelcontextprotocol/typescript-sdk)
+- [Example MCP servers repository](https://github.com/modelcontextprotocol/servers)
 
 ## Commands
 - Build/Run: `bun run start` (or `bun run src/index.ts`)
@@ -14,11 +14,16 @@
 - Tests: `bun run test`
 - Run single test: `bun test src/tests/mcp.service.test.ts`
 - Test with coverage: `bun run test:coverage`
+- Debug: `bun run debug` or `bun run inspector` (runs with MCP inspector)
+- Build: `bun run build` (builds to build directory)
+- Clean: `bun run clean` (removes build directory)
+- HTTP server: `bun run start:http` or `bun run http` (starts with HTTP transport)
 
 ## Code Style
 - TypeScript with strict type checking
 - ESM modules (`import/export`) with `.js` extension in imports
 - Use Zod for validation and schema definitions
+- Use Axios for API requests
 - Class-based services with dependency injection
 - Functional controllers with try/catch error handling
 - Use error objects with status codes and messages
@@ -39,11 +44,13 @@
 - Configuration in .env
 - Types in `src/types`
 - Services in `src/services`
+- OpenAPI specification in `raindrop.yaml`
 
 ## MCP Resources
 - Collections: `collections://all` and `collections://{parentId}/children`
-- Tags: `tags://all`
-- Highlights: `highlights://all`, `highlights://all?page={pageNumber}&perPage={perPageCount}`, and `highlights://{raindropId}`
+- Tags: `tags://all` and `tags://collection/{collectionId}`
+- Highlights: `highlights://all`, `highlights://all?page={pageNumber}&perPage={perPageCount}`, `highlights://raindrop/{raindropId}`, and `highlights://collection/{collectionId}`
+- Bookmarks: `bookmarks://collection/{collectionId}` and `bookmarks://raindrop/{id}`
 - User info: `user://info`
 - User stats: `user://stats`
 
@@ -113,8 +120,8 @@
 - **Description**: Merges multiple tags into one.
 - **Parameters**:
   - `collectionId` (number, optional): ID of the collection to restrict merging.
-  - `tags` (string[]): List of tags to merge.
-  - `newName` (string): New name for the merged tags.
+  - `sourceTags` (string[]): List of tags to merge.
+  - `destinationTag` (string): New name for the merged tags.
 - **Response**: Returns confirmation of tag merge.
 
 #### `deleteTags`
@@ -122,6 +129,13 @@
 - **Parameters**:
   - `collectionId` (number, optional): ID of the collection to restrict deletion.
   - `tags` (string[]): List of tags to delete.
+- **Response**: Returns confirmation of tag deletion.
+
+#### `deleteTag`
+- **Description**: Remove a tag from all bookmarks or in a specific collection.
+- **Parameters**:
+  - `tag` (string): Tag to delete.
+  - `collectionId` (number, optional): Collection ID to restrict deletion.
 - **Response**: Returns confirmation of tag deletion.
 
 #### `getAllTags`
@@ -189,8 +203,8 @@
 #### `mergeCollections`
 - **Description**: Merges multiple collections into one target collection.
 - **Parameters**:
-  - `targetCollectionId` (number): ID of the target collection.
-  - `collectionIds` (number[]): List of collection IDs to merge.
+  - `targetId` (number): ID of the target collection.
+  - `sourceIds` (number[]): List of collection IDs to merge.
 - **Response**: Returns confirmation of collection merge.
 
 #### `removeEmptyCollections`
@@ -233,12 +247,6 @@
   - `duplicates` (boolean, optional): Include duplicates.
 - **Response**: Returns confirmation with status URL.
 
-#### `uploadFile`
-- **Description**: Uploads a file to a specified collection.
-- **Parameters**:
-  - `collectionId` (number): ID of the collection to upload the file to.
-  - `file` (File): The file to upload.
-- **Response**: Returns the uploaded file details.
 
 #### `getBookmark`
 - **Description**: Get a specific bookmark by ID.
@@ -284,13 +292,35 @@
   - `important` (boolean, optional): Mark as important.
 - **Response**: Returns confirmation of batch update.
 
+#### `bulkMoveBookmarks`
+- **Description**: Move multiple bookmarks to another collection.
+- **Parameters**:
+  - `ids` (number[]): List of bookmark IDs to move.
+  - `collectionId` (number): Target collection ID.
+- **Response**: Returns confirmation of bulk move operation.
+
+#### `bulkTagBookmarks`
+- **Description**: Add or remove tags from multiple bookmarks.
+- **Parameters**:
+  - `ids` (number[]): List of bookmark IDs.
+  - `tags` (string[]): Tags to apply.
+  - `operation` (string): Whether to 'add' or 'remove' the specified tags.
+- **Response**: Returns confirmation of bulk tag operation.
+
+#### `batchDeleteBookmarks`
+- **Description**: Delete multiple bookmarks at once.
+- **Parameters**:
+  - `ids` (number[]): List of bookmark IDs to delete.
+  - `permanent` (boolean, optional): Permanently delete (skip trash).
+- **Response**: Returns confirmation of batch deletion.
+
 #### `createHighlight`
 - **Description**: Create a new highlight for a bookmark.
 - **Parameters**:
   - `raindropId` (number): Bookmark ID.
   - `text` (string): Highlighted text.
   - `note` (string, optional): Additional note for the highlight.
-  - `color` (string, optional): Color for the highlight.
+  - `color` (string, optional): Color for the highlight (e.g., "yellow", "#FFFF00").
 - **Response**: Returns the created highlight details.
 
 #### `updateHighlight`

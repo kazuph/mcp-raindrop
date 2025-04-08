@@ -20,7 +20,7 @@ describe('RaindropMCPService Live Tests', () => {
     // Clean up created resources to avoid test pollution
     if (createdBookmarkId) {
       try {
-        await raindropService.deleteBookmark(createdBookmarkId, true);
+        await raindropService.deleteBookmark(createdBookmarkId);
       } catch (err) {
         console.error('Failed to clean up bookmark:', err);
       }
