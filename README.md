@@ -45,22 +45,27 @@ npx @adeze/raindrop-mcp
 ### From Source
 
 1.  **Clone the repository:**
+
     ```bash
     git clone https://github.com/adeze/raindrop-mcp.git
     cd raindrop-mcp
     ```
 
 2.  **Install dependencies:**
+
     ```bash
     bun install
     ```
 
 3.  **Configure Environment Variables:**
     Create a `.env` file in the root directory by copying the example:
+
     ```bash
     cp .env.example .env
     ```
+
     Edit the `.env` file and add your Raindrop.io API Access Token:
+
     ```env
     RAINDROP_ACCESS_TOKEN=YOUR_RAINDROP_ACCESS_TOKEN
     ```
@@ -96,15 +101,15 @@ It also provides numerous tools for operational tasks such as collection managem
 To use the Raindrop MCP server with your AI assistant or MCP-compatible client, you can add the following configuration to your `.mcp.json` file:
 
 ```json
-{
-  "servers": {
-    "raindrop": {
-      "type": "stdio",
-      "command": "npx @adeze/raindrop-mcp",
-      "env": {
-        "RAINDROP_ACCESS_TOKEN": "YOUR_API_TOKEN_HERE"
-      }
-    }
+"raindrop": {
+  "command": "npx",
+  "args": [
+    "--registry",
+    "https://npm.pkg.github.com",
+    "@adeze/raindrop-mcp"
+  ],
+  "env": {
+    "RAINDROP_ACCESS_TOKEN": "YOUR_RAINDROP_API_TOKEN"
   }
 }
 ```
