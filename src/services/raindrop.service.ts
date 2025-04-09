@@ -172,16 +172,19 @@ class RaindropService {
   async renameTag(collectionId: number | undefined, oldName: string, newName: string): Promise<{ result: boolean }> {
     const endpoint = collectionId ? `/tags/${collectionId}` : '/tags/0';
     const { data } = await this.api.put(endpoint, {
-      old: oldName,
-      new: newName
+      from: oldName,
+      to: newName
     });
     return { result: data.result };
   }
 
   async mergeTags(collectionId: number | undefined, tags: string[], newName: string): Promise<{ result: boolean }> {
-    const promises = tags.map(tag => this.renameTag(collectionId, tag, newName));
-    await Promise.all(promises);
-    return { result: true };
+    const endpoint = collectionId ? `/tags/${collectionId}` : '/tags/0';
+    const { data } = await this.api.put(endpoint, {
+      tags,
+      to: newName
+    });
+    return { result: data.result };
   }
 
   // User

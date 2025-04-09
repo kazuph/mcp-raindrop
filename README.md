@@ -14,7 +14,7 @@ This project provides a Model Context Protocol (MCP) server for interacting with
 - **Import/Export**: Initiate and check the status of bookmark imports and exports.
 - **Trash Management**: Empty the trash.
 - **MCP Compliance**: Exposes Raindrop.io functionalities as MCP resources and tools.
-- **Streaming Support**: Provides real-time SSE (Server-Sent Events) endpoints for streaming bookmark updates (Optional, via `mcp-sse.service.ts`).
+- **Streaming Support**: Provides real-time SSE (Server-Sent Events) endpoints for streaming bookmark updates.
 - **Built with TypeScript**: Strong typing for better maintainability.
 - **Uses Axios**: For making requests to the Raindrop.io API.
 - **Uses Zod**: For robust schema validation of API parameters and responses.
@@ -35,11 +35,6 @@ This project provides a Model Context Protocol (MCP) server for interacting with
     ```
 
 2.  **Install dependencies:**
-    Using npm:
-    ```bash
-    npm install
-    ```
-    Or using Bun:
     ```bash
     bun install
     ```
@@ -58,15 +53,6 @@ This project provides a Model Context Protocol (MCP) server for interacting with
 
 The server uses standard input/output (stdio) for communication by default.
 
-**Using Node.js:**
-
-```bash
-npm run build
-npm start
-```
-
-**Using Bun:**
-
 ```bash
 bun run build
 bun start
@@ -78,21 +64,30 @@ This will start the MCP server, listening for requests on stdin and sending resp
 
 ## Usage with MCP Clients
 
-Connect your MCP client (like an LLM agent) to the running server process via stdio. The server exposes the following roots:
+Connect your MCP client (like an LLM agent) to the running server process via stdio. The server exposes the following resource URIs:
 
-- `collections`: Manage bookmark collections (folders).
-- `bookmarks`: Manage individual bookmarks.
-- `tags`: List tags.
-- `highlights`: Access text highlights.
+- `collections://all` - All collections
+- `collections://{parentId}/children` - Child collections
+- `tags://all` - All tags
+- `tags://collection/{collectionId}` - Tags filtered by collection
+- `highlights://all` - All highlights
+- `highlights://raindrop/{raindropId}` - Highlights for a specific bookmark
+- `highlights://collection/{collectionId}` - Highlights filtered by collection
+- `bookmarks://collection/{collectionId}` - Bookmarks in a collection
+- `bookmarks://raindrop/{id}` - Specific bookmark by ID
+- `user://info` - User information
+- `user://stats` - User statistics
 
-It also provides several tools for operational tasks (renaming tags, merging collections, import/export, etc.). Refer to `src/services/mcp.service.ts` for detailed definitions of resources, operations, and tools.
+It also provides numerous tools for operational tasks such as collection management, bookmark operations, tag management, highlight operations, and user operations. For a detailed list of all available tools, refer to `CLAUDE.md` or check `src/services/mcp.service.ts` for definitions of resources and tools.
 
 ## Development
 
-- **Linting:** `npm run lint` or `bun run lint`
-- **Formatting:** `npm run format` or `bun run format`
-- **Testing:** `npm test` or `bun test`
-- **Build:** `npm run build` or `bun run build`
+- **Testing:** `bun test`
+- **Type checking:** `bun run type-check`
+- **Build:** `bun run build`
+- **Development:** `bun run dev`
+- **Debug:** `bun run debug` or `bun run inspector`
+- **HTTP server:** `bun run start:http`
 
 ## Contributing
 
