@@ -1,7 +1,32 @@
 import { McpServer, ResourceTemplate  } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { z } from "zod";
 import raindropService from './raindrop.service.js';
 import { type Collection, type Bookmark,  type Highlight,type SearchParams } from '../types/raindrop.js';
+import {
+  CallToolRequestSchema,
+  CompleteRequestSchema,
+  type CreateMessageRequest,
+  CreateMessageResultSchema,
+  GetPromptRequestSchema,
+  ListPromptsRequestSchema,
+  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
+  ListToolsRequestSchema,
+  type LoggingLevel,
+  ReadResourceRequestSchema,
+  type Resource,
+  SetLevelRequestSchema,
+  SubscribeRequestSchema,
+  type Tool,
+  ToolSchema,
+  UnsubscribeRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+
+import { zodToJsonSchema } from "zod-to-json-schema";
+
+const ToolInputSchema = ToolSchema.shape.inputSchema;
+type ToolInput = z.infer<typeof ToolInputSchema>;
 
 /**
  * Raindrop.io MCP Service
@@ -23,7 +48,12 @@ import { type Collection, type Bookmark,  type Highlight,type SearchParams } fro
 export class RaindropMCPService {
   private server: McpServer;
 
-  // Ensure the server is properly initialized and connected
+  private subsUpdateInterval: NodeJS.Timeout | undefined;
+  private logsUpdateInterval: NodeJS.Timeout | undefined;
+  private subscriptions: Set<string> = new Set();
+  private logLevel: LoggingLevel = "debug";
+
+  // Initialize the server
   constructor() {
     this.server = new McpServer({
         name: 'raindrop-mcp',
@@ -34,13 +64,84 @@ export class RaindropMCPService {
         }
     });
 
+    // Initialize subscriptions and notifications
+    //this.setupSubscriptions();
+    this.setupLogging();
+    
     // Initialize resources and tools
     this.initializeResources();
     this.initializeTools();
-
-    // We don't connect the server here as it requires a transport
-    // The connection will be established when the server is used
   }
+
+  // private setupSubscriptions() {
+  //   // Set up update interval for subscribed resources
+  //   this.subsUpdateInterval = setInterval(() => {
+  //     for (const uri of this.subscriptions) {
+  //       this.server.notification({
+  //         method: "notifications/resources/updated",
+  //         params: { uri },
+  //       });
+  //     }
+  //   }, 5000);
+  // }
+
+  private setupLogging() {
+    const messages = [
+      { level: "debug", data: "Debug-level message" },
+      { level: "info", data: "Info-level message" },
+      { level: "notice", data: "Notice-level message" },
+      { level: "warning", data: "Warning-level message" },
+      { level: "error", data: "Error-level message" },
+      { level: "critical", data: "Critical-level message" },
+      { level: "alert", data: "Alert level-message" },
+      { level: "emergency", data: "Emergency-level message" },
+    ];
+
+    const isMessageIgnored = (level: LoggingLevel): boolean => {
+      const currentLevel = messages.findIndex((msg) => this.logLevel === msg.level);
+      const messageLevel = messages.findIndex((msg) => level === msg.level);
+      return messageLevel < currentLevel;
+    };
+
+    // Set up update interval for random log messages
+    // this.logsUpdateInterval = setInterval(() => {
+    //   let message = {
+    //     method: "notifications/message",
+    //     params: messages[Math.floor(Math.random() * messages.length)],
+    //   };
+    //   if (!isMessageIgnored(message.params.level as LoggingLevel))
+    //     this.server.notification(message);
+    // }, 15000);
+  }
+
+  // Helper method to request sampling from client
+  // private async requestSampling(
+  //   context: string,
+  //   uri: string,
+  //   maxTokens: number = 100
+  // ) {
+  //   const request: CreateMessageRequest = {
+  //     method: "sampling/createMessage",
+  //     params: {
+  //       messages: [
+  //         {
+  //           role: "user",
+  //           content: {
+  //             type: "text",
+  //             text: `Resource ${uri} context: ${context}`,
+  //           },
+  //         },
+  //       ],
+  //       systemPrompt: "You are a helpful test server.",
+  //       maxTokens,
+  //       temperature: 0.7,
+  //       includeContext: "thisServer",
+  //     },
+  //   };
+
+  //   return await this.server.request(request, CreateMessageResultSchema);
+  // }
+  
 
 private initializeResources(){
  // Define a resource for all collections

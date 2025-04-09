@@ -4,6 +4,8 @@ import { config } from 'dotenv';
 config(); // Load .env file
 // Import shared types
 import type { Collection, Bookmark, Highlight,HighlightContent, SearchParams } from '../types/raindrop.js';
+import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 
 
 // Check if the token exists
