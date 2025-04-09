@@ -2,6 +2,8 @@
 
 This project provides a Model Context Protocol (MCP) server for interacting with the [Raindrop.io](https://raindrop.io/) bookmarking service. It allows Language Models (LLMs) and other AI agents to access and manage your Raindrop.io data through the MCP standard.
 
+[![npm version](https://badge.fury.io/js/%40adeze%2Fraindrop-mcp.svg)](https://www.npmjs.com/package/@adeze/raindrop-mcp)
+
 ## Features
 
 - **CRUD Operations**: Create, Read, Update, and Delete collections and bookmarks.
@@ -26,11 +28,25 @@ This project provides a Model Context Protocol (MCP) server for interacting with
 - A Raindrop.io account
 - A Raindrop.io API Access Token (create one in your [Raindrop.io settings](https://app.raindrop.io/settings/integrations))
 
-## Setup
+## Installation and Usage
+
+### Using NPX (Recommended)
+
+You can run the server directly using npx without installing it:
+
+```bash
+# Set your API token as an environment variable
+export RAINDROP_ACCESS_TOKEN=YOUR_RAINDROP_ACCESS_TOKEN
+
+# Run the server
+npx @adeze/raindrop-mcp
+```
+
+### From Source
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/raindrop-mcp.git
+    git clone https://github.com/adeze/raindrop-mcp.git
     cd raindrop-mcp
     ```
 
@@ -49,18 +65,13 @@ This project provides a Model Context Protocol (MCP) server for interacting with
     RAINDROP_ACCESS_TOKEN=YOUR_RAINDROP_ACCESS_TOKEN
     ```
 
-## Running the Server
+4.  **Build and Run:**
+    ```bash
+    bun run build
+    bun start
+    ```
 
-The server uses standard input/output (stdio) for communication by default.
-
-```bash
-bun run build
-bun start
-```
-
-This will start the MCP server, listening for requests on stdin and sending responses to stdout.
-
-<!-- Removed section about SSE server and ports -->
+The server uses standard input/output (stdio) for communication by default, listening for requests on stdin and sending responses to stdout.
 
 ## Usage with MCP Clients
 
@@ -79,6 +90,26 @@ Connect your MCP client (like an LLM agent) to the running server process via st
 - `user://stats` - User statistics
 
 It also provides numerous tools for operational tasks such as collection management, bookmark operations, tag management, highlight operations, and user operations. For a detailed list of all available tools, refer to `CLAUDE.md` or check `src/services/mcp.service.ts` for definitions of resources and tools.
+
+### MCP Configuration
+
+To use the Raindrop MCP server with your AI assistant or MCP-compatible client, you can add the following configuration to your `.mcp.json` file:
+
+```json
+{
+  "servers": {
+    "raindrop": {
+      "type": "stdio",
+      "command": "npx @adeze/raindrop-mcp",
+      "env": {
+        "RAINDROP_ACCESS_TOKEN": "YOUR_API_TOKEN_HERE"
+      }
+    }
+  }
+}
+```
+
+For Claude Code or other MCP-compatible clients, this will register the Raindrop server under the name "raindrop" and make all of its resources and tools available to your AI assistant.
 
 ## Development
 

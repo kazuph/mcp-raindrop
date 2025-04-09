@@ -1,12 +1,17 @@
 {
-    "name": "raindrop-mcp",
+    "name": "@adeze/raindrop-mcp",
+    "version": "1.0.0",
+    "description": "MCP Server for Raindrop.io",
+    "main": "index.js",
     "module": "src/index.ts",
     "type": "module",
     "bin": {
-        "raindrop-mcp": "dist/index.js"
+        "raindrop-mcp": "./build/cli.js"
     },
     "files": [
-        "dist"
+        "dist",
+        "build",
+        "cli.js"
     ],
     "private": true,
     "scripts": {
@@ -16,7 +21,7 @@
         "test": "bun test",
         "test:coverage": "bun test --coverage",
         "run build": "bun run build/index.js",
-        "build": "bun build --target=node --format=esm --outdir=build ./src/index.ts",
+        "build": "bun build --target=node --format=esm --outdir=build ./src/index.ts ./src/cli.ts",
         "start src": "bun run src/index.ts",
         "debug": "bun run inspector",
         "clean": "rm -rf build",
@@ -24,6 +29,20 @@
         "start:http": "bun run src/sse.ts",
         "mcp": "bun run src/index.js"
     },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/adeze/raindrop-mcp.git"
+    },
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
+    },
+    "keywords": ["mcp", "raindrop.io", "modelcontextprotocol","mcp-server", "raindrop"],
+    "author": "Adam E",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/adeze/raindrop-mcp/issues"
+    },
+    "homepage": "https://github.com/adeze/raindrop-mcp#readme",
     "dependencies": {
         "@modelcontextprotocol/sdk": "latest",
         "axios": "^1.8.4",

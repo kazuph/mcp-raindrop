@@ -5,7 +5,7 @@ config(); // Load .env file
 // 
 
 
-async function main() {
+export async function main() {
   const transport = new StdioServerTransport();
    // Await the creation of the server and destructure the result
    const { server, cleanup } =  createRaindropServer(); 
@@ -24,4 +24,3 @@ main().catch((error) => {
   console.error("Server error:", error);
   process.exit(1);
 });
-

@@ -6,8 +6,17 @@
 - [Model Context Protocol with LLMs](https://modelcontextprotocol.io/llms-full.txt)
 - [MCP Typescript SDK v1.9.0](https://github.com/modelcontextprotocol/typescript-sdk)
 - [Example MCP servers repository](https://github.com/modelcontextprotocol/servers)
+- [This project on GitHub](https://github.com/adeze/raindrop-mcp)
 
-## Commands
+## Installation and Usage
+
+### NPM Package
+You can use this package directly from npm:
+```bash
+npx @adeze/raindrop-mcp
+```
+
+### Development Commands
 - Build/Run: `bun run start` (or `bun run src/index.ts`)
 - Development: `bun run dev` (watch mode)
 - Type checking: `bun run type-check`
@@ -17,7 +26,7 @@
 - Debug: `bun run debug` or `bun run inspector` (runs with MCP inspector)
 - Build: `bun run build` (builds to build directory)
 - Clean: `bun run clean` (removes build directory)
-- HTTP server: `bun run start:http` or `bun run http` (starts with HTTP transport)
+- HTTP server: `bun run start:http` (starts with HTTP transport)
 
 ## Code Style
 - TypeScript with strict type checking
@@ -53,6 +62,58 @@
 - Bookmarks: `bookmarks://collection/{collectionId}` and `bookmarks://raindrop/{id}`
 - User info: `user://info`
 - User stats: `user://stats`
+
+## MCP Configuration
+
+To use this MCP server with your AI assistant, add the following to your `.mcp.json` file:
+
+```json
+{
+  "servers": {
+    "raindrop": {
+      "type": "stdio",
+      "command": "npx @adeze/raindrop-mcp",
+      "env": {
+        "RAINDROP_ACCESS_TOKEN": "YOUR_API_TOKEN_HERE"
+      }
+    }
+  }
+}
+```
+
+### Alternative Configuration Options
+
+For local development, you can use the following:
+
+```json
+{
+  "servers": {
+    "raindrop": {
+      "type": "stdio",
+      "command": "cd /path/to/raindrop-mcp && bun start",
+      "env": {
+        "RAINDROP_ACCESS_TOKEN": "YOUR_API_TOKEN_HERE"
+      }
+    }
+  }
+}
+```
+
+For HTTP transport instead of stdio:
+
+```json
+{
+  "servers": {
+    "raindrop": {
+      "type": "http",
+      "url": "http://localhost:3000",
+      "env": {
+        "RAINDROP_ACCESS_TOKEN": "YOUR_API_TOKEN_HERE"
+      }
+    }
+  }
+}
+```
 
 ## MCP Tools Documentation
 
