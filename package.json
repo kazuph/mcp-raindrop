@@ -21,8 +21,7 @@
         "debug": "bun run inspector",
         "clean": "rm -rf build",
         "prebuild": "bun run clean",
-        "start:http": "TRANSPORT_TYPE=http bun run src/index.ts",
-        "http": "TRANSPORT_TYPE=http bun run src/index.ts",
+        "start:http": "bun run src/sse.ts",
         "mcp": "bun run src/index.js"
     },
     "dependencies": {

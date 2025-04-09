@@ -6,7 +6,7 @@ config(); // Load .env file
 import type { Collection, Bookmark, Highlight,HighlightContent, SearchParams } from '../types/raindrop.js';
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-
+import { CollectionSchema } from '../types/raindrop.js';
 
 // Check if the token exists
 const raindropAccessToken = process.env.RAINDROP_ACCESS_TOKEN;
@@ -31,7 +31,17 @@ class RaindropService {
   // Collections
   async getCollections(): Promise<Collection[]> {
     const { data } = await this.api.get('/collections');
-    return data.items;
+
+    // Preprocess the API response to fix discrepancies
+    const processedCollections = data.items.map((collection: any) => ({
+      ...collection,
+      sort: typeof collection.sort === 'number' ? collection.sort.toString() : collection.sort,
+      parent: collection.parent === null ? undefined : collection.parent,
+    }));
+
+    // Validate the processed collections
+    const validatedCollections = CollectionSchema.array().parse(processedCollections);
+    return validatedCollections;
   }
 
   async getCollection(id: number): Promise<Collection> {

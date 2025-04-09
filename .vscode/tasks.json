@@ -59,7 +59,7 @@
 			},
 			"presentation": {
 				"reveal": "silent",
-				"panel": "shared"
+				"panel": "new"
 			}
 		},
 		{

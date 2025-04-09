@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 // Raindrop.io types
 
 export type User = {
@@ -48,6 +50,46 @@ export type Collection = {
     role: 'owner' | 'viewer' | 'editor';
   }[];
 };
+
+export const CollectionSchema = z.object({
+  _id: z.number(),
+  title: z.string(),
+  description: z.string().optional(),
+  color: z.string().optional(),
+  public: z.boolean().optional(),
+  view: z.enum(['list', 'simple', 'grid', 'masonry']),
+  sort: z.string(),
+  cover: z.array(z.string()).optional(),
+  count: z.number(),
+  expanded: z.boolean().optional(),
+  parent: z
+    .object({
+      $id: z.number(),
+      title: z.string().optional(),
+    })
+    .optional(),
+  user: z.object({
+    $id: z.number(),
+  }),
+  created: z.string(),
+  lastUpdate: z.string(),
+  creatorRef: z
+    .object({
+      _id: z.number(),
+      name: z.string(),
+    })
+    .optional(),
+  collaborators: z
+    .array(
+      z.object({
+        _id: z.number(),
+        email: z.string(),
+        name: z.string().optional(),
+        role: z.enum(['owner', 'viewer', 'editor']),
+      })
+    )
+    .optional(),
+});
 
 export type Media = {
   link: string;
