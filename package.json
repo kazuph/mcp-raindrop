@@ -9,17 +9,18 @@
         "type-check": "tsc --noEmit",
         "test": "bun test",
         "test:coverage": "bun test --coverage",
-        "run": "bun run build/index.js",
-        "build": "bun build src/index.ts --outfile=build/index.js",
-        "start": "bun run src/index.ts",
+        "run build": "bun run build/index.js",
+        "build": "bun build --target=node --format=esm --outdir=build ./src/index.ts",
+        "start src": "bun run src/index.ts",
         "debug": "bun run inspector",
         "clean": "rm -rf build",
         "prebuild": "bun run clean",
         "start:http": "TRANSPORT_TYPE=http bun run src/index.ts",
-        "http": "TRANSPORT_TYPE=http bun run src/index.ts"
+        "http": "TRANSPORT_TYPE=http bun run src/index.ts",
+        "mcp": "bun run src/index.js"
     },
     "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.9.0",
+        "@modelcontextprotocol/sdk": "latest",
         "axios": "^1.8.4",
         "dotenv": "^16.4.7",
         "esm": "^3.2.25",

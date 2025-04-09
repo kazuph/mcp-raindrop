@@ -12,7 +12,7 @@
 				"isDefault": true
 			},
 			"presentation": {
-				"reveal": "silent",
+				"reveal": "always",
 				"panel": "shared"
 			}
 		},
@@ -35,7 +35,7 @@
 			},
 			"problemMatcher": ["$tsc"],
 			"presentation": {
-				"reveal": "silent",
+				"reveal": "always",
 				"panel": "shared"
 			}
 		},

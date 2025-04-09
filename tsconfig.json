@@ -3,14 +3,14 @@
       // Environment setup & latest features
       "lib": ["esnext"],
       "forceConsistentCasingInFileNames": true,
-      "target": "esnext",
+      "target": "ES2022",
       "module": "NodeNext",
       "moduleDetection": "force",
       "esModuleInterop": true,
       "resolveJsonModule": true,
       "jsx": "react-jsx",
       "allowJs": true,
-      "outDir": "./build",
+      "outDir": "build",
       "rootDir": "./src",
       // Bundler mode
       "moduleResolution": "NodeNext",
@@ -21,13 +21,15 @@
       // Best practices
       "strict": true, // Disable all strict checks
       "skipLibCheck": true, 
+      "declaration": true,
+      "sourceMap": true,
      
       // Vitest support
       "types": ["vitest/globals", "node"]
     },
-    "include": ["src/**/*.ts", "src/**/*.test.ts", "test/**/*.test.ts"],
+    "include": ["src/**/*"],
     "exclude": [
-      "node_modules"
-     
+      "node_modules",
+      "**/*.test.ts"
     ]
   }
