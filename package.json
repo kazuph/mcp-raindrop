@@ -1,6 +1,6 @@
 {
     "name": "@adeze/raindrop-mcp",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "MCP Server for Raindrop.io",
     "main": "index.js",
     "module": "src/index.ts",
@@ -34,7 +34,8 @@
         "url": "git+https://github.com/adeze/raindrop-mcp.git"
     },
     "publishConfig": {
-        "registry": "https://npm.pkg.github.com"
+        "registry": "https://npm.pkg.github.com",
+        "access": "public"
     },
     "keywords": ["mcp", "raindrop.io", "modelcontextprotocol","mcp-server", "raindrop"],
     "author": "Adam E",
