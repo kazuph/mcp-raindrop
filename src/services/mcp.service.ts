@@ -151,6 +151,10 @@ private initializeResources(){
   async (uri) => {
     const collections = await raindropService.getCollections();
     return {
+      method: "resources/read",
+      params: {
+        uri: uri.href
+      },
       contents: collections.map(collection => ({
         uri: `${uri.href}/${collection._id}`,
         text: collection.title,

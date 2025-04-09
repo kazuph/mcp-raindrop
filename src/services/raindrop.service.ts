@@ -261,21 +261,18 @@ class RaindropService {
 
 
   async getAllHighlights(): Promise<Highlight[]> {
-   
       const { data } = await this.api.get('/highlights');
-      return data.items.map((item: any) => this.mapHighlightContentToHighlight(item)).filter(Boolean);
- 
-
+      return data.items;
   }
 
   // Helper to convert the new highlight content format to our Highlight type
   private mapHighlightContentToHighlight(content: any): Highlight | null {
-    if (!content || !content.metadata || !content.metadata.id) {
+    if (!content || !content.metadata) {
       return null;
     }
 
     // Extract raindrop ID from URI if possible
-    const raindropIdMatch = content.uri.match(/highlights:\/\/(\d+)\//) || [];
+    const raindropIdMatch = content.uri?.match(/highlights:\/\/(\d+)\//) || [];
     const raindropId = content.metadata.raindrop?._id || 
                        (raindropIdMatch[1] ? parseInt(raindropIdMatch[1], 10) : 0);
 
@@ -283,19 +280,19 @@ class RaindropService {
       _id: parseInt(content.metadata.id, 10) || 0, // Convert string ID to number
       text: content.text || '',
       note: content.metadata.note || '',
-      color: '', // Not provided in this format
-      created: content.metadata.created,
-      lastUpdate: content.metadata.created, // Using created as last update since it's not provided
+      color: content.metadata.color || 'yellow', // Default to yellow if not provided
+      created: content.metadata.created || new Date().toISOString(),
+      lastUpdate: content.metadata.lastUpdate || content.metadata.created || new Date().toISOString(),
       title: content.metadata.title || '',
       tags: content.metadata.tags || [],
       link: content.metadata.link || '',
-      excerpt: '', // Not provided in this format
+      excerpt: content.metadata.excerpt || '',
       raindrop: {
         _id: raindropId,
         title: content.metadata.title || '',
         link: content.metadata.link || '',
-        collection: { $id: 0 } // Collection info not provided in this format
-      }
+        collection: content.metadata.collection || { $id: 0 },
+      },
     };
   }
 
