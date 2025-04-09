@@ -10,12 +10,23 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+
+      # Set up Bun
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: '16.x'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@adeze'
-      - run: npm ci
-      - run: npm publish
+          bun-version: 'latest'
+
+      # Install dependencies
+      - name: Install dependencies
+        run: bun install
+
+      # Build the project
+      - name: Build the project
+        run: bun run build
+
+      # Publish to GitHub Packages
+      - name: Publish to GitHub Packages
+        run: bun publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
