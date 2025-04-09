@@ -1,7 +1,7 @@
 import { McpServer, ResourceTemplate  } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import raindropService from './raindrop.service.js';
-//import type { Collection, Bookmark, SearchParams } from "../types/raindrop.js";
+import { type Collection, type Bookmark,  type Highlight,type SearchParams } from '../types/raindrop.js';
 
 /**
  * Raindrop.io MCP Service
