@@ -103,6 +103,26 @@
 			}
 		},
 		{
+			"type": "shell",
+			"label": "bun: pubish",
+			"detail": "Publishes modules ",
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
+			"command": "bun",
+			"args": [
+				"publish"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
 			"type": "npm",
 			"script": "type-check",
 			"label": "Type Check",
