@@ -1,6 +1,6 @@
 {
     "name": "@adeze/raindrop-mcp",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "description": "MCP Server for Raindrop.io",
     "main": "index.js",
     "module": "src/index.ts",
@@ -27,7 +27,10 @@
         "clean": "rm -rf build",
         "prebuild": "bun run clean",
         "start:http": "bun run src/sse.ts",
-        "mcp": "bun run src/index.js"
+        "mcp": "bun run src/index.js",
+        "bump:patch": "npm version patch",
+        "bump:minor": "npm version minor",
+        "bump:major": "npm version major"
     },
     "repository": {
         "type": "git",

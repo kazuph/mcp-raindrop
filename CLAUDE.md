@@ -54,6 +54,7 @@ npx @adeze/raindrop-mcp
 - Types in `src/types`
 - Services in `src/services`
 - OpenAPI specification in `raindrop.yaml`
+- Smithery configuration in `smithery.yaml`
 
 ## MCP Resources
 - Collections: `collections://all` and `collections://{parentId}/children`
@@ -114,6 +115,10 @@ For HTTP transport instead of stdio:
   }
 }
 ```
+
+### Smithery Configuration
+
+This project includes a `smithery.yaml` configuration file for [Smithery](https://smithery.ai/), which allows easy discovery and installation of MCP servers. The configuration specifies how to start the MCP server and requires no additional configuration options.
 
 ## MCP Tools Documentation
 
