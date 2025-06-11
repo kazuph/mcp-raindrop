@@ -25,6 +25,76 @@
 			},
 			"problemMatcher": [],
 			"type": "shell"
+		},
+		{
+			"args": [
+				"--watch",
+				"src/http-server-optimized.ts"
+			],
+			"command": "bun",
+			"group": "build",
+			"isBackground": true,
+			"label": "Start Optimized HTTP Server (Development)",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"clear": false,
+				"echo": true,
+				"focus": false,
+				"panel": "shared",
+				"reveal": "always",
+				"showReuseMessage": true
+			},
+			"problemMatcher": [],
+			"type": "shell"
+		},
+		{
+			"args": [
+				"@modelcontextprotocol/inspector",
+				"http://localhost:3002/mcp"
+			],
+			"command": "npx",
+			"group": "test",
+			"isBackground": true,
+			"label": "Debug Optimized HTTP Server with Inspector",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"clear": false,
+				"echo": true,
+				"focus": false,
+				"panel": "shared",
+				"reveal": "always",
+				"showReuseMessage": true
+			},
+			"problemMatcher": [],
+			"type": "shell"
+		},
+		{
+			"args": [
+				"-s",
+				"http://localhost:3002/health",
+				"|",
+				"jq"
+			],
+			"command": "curl",
+			"group": "test",
+			"label": "Check Optimized Server Health",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"clear": false,
+				"echo": true,
+				"focus": false,
+				"panel": "shared",
+				"reveal": "always",
+				"showReuseMessage": true
+			},
+			"problemMatcher": [],
+			"type": "shell"
 		}
 	],
 	"inputs": [
