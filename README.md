@@ -132,3 +132,8 @@ Contributions are welcome! Please open an issue or submit a pull request.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📋 Recent Enhancements
+
+- **[Tool Optimization](https://github.com/adeze/raindrop-mcp/issues/2)**: 37→24 tools with enhanced AI-friendly descriptions
+- **[VS Code Configuration](https://github.com/adeze/raindrop-mcp/issues/3)**: Enterprise-grade testing & debugging support

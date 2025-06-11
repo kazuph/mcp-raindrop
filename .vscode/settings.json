@@ -70,5 +70,6 @@
     "*.mcp": "json",
     "smithery.yaml": "yaml",
     "raindrop.yaml": "yaml"
-  }
+  },
+  "testing.automaticallyOpenTestResults": "neverOpen"
 }
