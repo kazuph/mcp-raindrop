@@ -1,0 +1,40 @@
+{
+  "recommendations": [
+    // Essential Extensions for TypeScript/Bun Development
+    "oven.bun-vscode",
+    "ms-vscode.vscode-typescript-next",
+    "bradlc.vscode-tailwindcss",
+    
+    // Testing and Debugging
+    "ms-vscode.test-adapter-converter",
+    "hbenl.vscode-test-explorer",
+    "ms-vscode.js-debug",
+    
+    // Code Quality and Formatting
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-eslint",
+    "streetsidesoftware.code-spell-checker",
+    
+    // Git and Version Control
+    "eamodio.gitlens",
+    "github.vscode-pull-request-github",
+    
+    // API Development and Testing
+    "postman.postman-for-vscode",
+    "humao.rest-client",
+    "ms-vscode.vscode-json",
+    
+    // Productivity
+    "ms-vscode.hexeditor",
+    "ms-vscode-remote.remote-containers",
+    "ms-vscode.remote-explorer",
+    
+    // Documentation and Markdown
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint",
+    
+    // MCP and AI Development
+    "github.copilot",
+    "github.copilot-chat"
+  ]
+}

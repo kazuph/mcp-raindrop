@@ -9,8 +9,8 @@
  * - Consolidated operations with parameters
  */
 
-import OptimizedRaindropMCPService from './services/mcp-optimized.service.js';
-import RaindropMCPService from './services/mcp.service.js';
+import OptimizedRaindropMCPService from '../services/mcp-optimized.service.js';
+import RaindropMCPService from '../services/mcp.service.js';
 
 interface ToolInfo {
     name: string;

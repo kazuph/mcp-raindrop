@@ -4,38 +4,130 @@
     {
       "type": "bun",
       "request": "launch",
-      "name": "Debug Bun",
-      // The path to a JavaScript or TypeScript file to run.
+      "name": "Debug Current File",
       "program": "${file}",
-      // The arguments to pass to the program, if any.
       "args": [],
-      // The working directory of the program.
       "cwd": "${workspaceFolder}",
-      // The environment variables to pass to the program.
       "env": {},
-      // If the environment variables should not be inherited from the parent process.
       "strictEnv": false,
-      // If the program should be run in watch mode.
-      // This is equivalent to passing `--watch` to the `bun` executable.
-      // You can also set this to "hot" to enable hot reloading using `--hot`.
       "watchMode": false,
-      // If the debugger should stop on the first line of the program.
       "stopOnEntry": false,
-      // If the debugger should be disabled. (for example, breakpoints will not be hit)
       "noDebug": false,
-      // The path to the `bun` executable, defaults to your `PATH` environment variable.
       "runtime": "bun",
-      // The arguments to pass to the `bun` executable, if any.
-      // Unlike `args`, these are passed to the executable itself, not the program.
-      "runtimeArgs": [],
+      "runtimeArgs": []
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Debug Optimized MCP Server (STDIO)",
+      "program": "${workspaceFolder}/src/index.ts",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "env": {},
+      "stopOnEntry": false
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Debug Optimized HTTP Server",
+      "program": "${workspaceFolder}/src/http-server-optimized.ts",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "env": {},
+      "stopOnEntry": false
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Debug Original HTTP Server",
+      "program": "${workspaceFolder}/src/http-server.ts",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "env": {},
+      "stopOnEntry": false
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Run Test Suite",
+      "program": "${workspaceFolder}/tests/index.ts",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "env": {},
+      "stopOnEntry": false
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Run Server Tests",
+      "program": "${workspaceFolder}/tests/test-server.ts",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "env": {},
+      "stopOnEntry": false
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Run Comparison Tests",
+      "program": "${workspaceFolder}/tests/test-comparison.ts",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "env": {},
+      "stopOnEntry": false
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Run Optimization Demo",
+      "program": "${workspaceFolder}/tests/optimization-demo.ts",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "env": {},
+      "stopOnEntry": false
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Debug Specific Test File",
+      "program": "${file}",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "NODE_ENV": "test"
+      },
+      "stopOnEntry": false
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Run Unit Tests with Debug",
+      "program": "${workspaceFolder}/node_modules/.bin/bun",
+      "args": ["test", "--watch"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "NODE_ENV": "test"
+      },
+      "stopOnEntry": false
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Performance Test",
+      "program": "${workspaceFolder}/tests/test-server.ts",
+      "args": ["--performance"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "NODE_ENV": "performance",
+        "PERFORMANCE_TEST": "true"
+      },
+      "stopOnEntry": false
     },
     {
       "type": "bun",
       "request": "attach",
-      "name": "Attach to Bun",
-      // The URL of the WebSocket inspector to attach to.
-      // This value can be retrieved by using `bun --inspect`.
-      "url": "ws://localhost:6499/",
+      "name": "Attach to Bun Debugger",
+      "url": "ws://localhost:6499/"
     },
     {
       "name": "Attach to Local MCP",
@@ -52,57 +144,127 @@
       "postDebugTask": "Terminate All Tasks"
     },
     {
-      "name": "Launch Inspector (Edge)",
+      "name": "Launch Inspector (Edge) - Optimized",
       "type": "msedge",
       "request": "launch",
-      "url": "http://localhost:5173?timeout=60000&serverUrl=http://localhost:3001/sse#tools",
+      "url": "http://localhost:5173?timeout=60000&serverUrl=http://localhost:3002/mcp#tools",
       "cascadeTerminateToConfigurations": [
-        "Attach to Local MCP"
+        "Debug Optimized HTTP Server"
       ],
       "presentation": {
-        "hidden": true
+        "hidden": false
       },
       "internalConsoleOptions": "neverOpen"
     },
     {
-      "name": "Launch Inspector (Chrome)",
+      "name": "Launch Inspector (Chrome) - Optimized",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173?timeout=60000&serverUrl=http://localhost:3002/mcp#tools",
+      "cascadeTerminateToConfigurations": [
+        "Debug Optimized HTTP Server"
+      ],
+      "presentation": {
+        "hidden": false
+      },
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Launch Inspector (Edge) - Original",
+      "type": "msedge",
+      "request": "launch",
+      "url": "http://localhost:5173?timeout=60000&serverUrl=http://localhost:3001/sse#tools",
+      "cascadeTerminateToConfigurations": [
+        "Debug Original HTTP Server"
+      ],
+      "presentation": {
+        "hidden": false
+      },
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Launch Inspector (Chrome) - Original",
       "type": "chrome",
       "request": "launch",
       "url": "http://localhost:5173?timeout=60000&serverUrl=http://localhost:3001/sse#tools",
       "cascadeTerminateToConfigurations": [
-        "Attach to Local MCP"
+        "Debug Original HTTP Server"
       ],
       "presentation": {
-        "hidden": true
+        "hidden": false
       },
       "internalConsoleOptions": "neverOpen"
     }
   ],
   "compounds": [
     {
-      "name": "Debug in Agent Builder",
+      "name": "Debug Optimized Service with Inspector (Edge)",
       "configurations": [
-        "Attach to Local MCP"
+        "Debug Optimized HTTP Server",
+        "Launch Inspector (Edge) - Optimized"
       ],
-      "preLaunchTask": "Open Agent Builder",
-    },
-    {
-      "name": "Debug in Inspector (Edge)",
-      "configurations": [
-        "Launch Inspector (Edge)",
-        "Attach to Local MCP"
-      ],
-      "preLaunchTask": "Start MCP Inspector",
+      "preLaunchTask": "Start Optimized HTTP Server (Development)",
       "stopAll": true
     },
     {
-      "name": "Debug in Inspector (Chrome)",
+      "name": "Debug Optimized Service with Inspector (Chrome)",
       "configurations": [
-        "Launch Inspector (Chrome)",
-        "Attach to Local MCP"
+        "Debug Optimized HTTP Server",
+        "Launch Inspector (Chrome) - Optimized"
       ],
-      "preLaunchTask": "Start MCP Inspector",
+      "preLaunchTask": "Start Optimized HTTP Server (Development)",
+      "stopAll": true
+    },
+    {
+      "name": "Debug Original Service with Inspector (Edge)",
+      "configurations": [
+        "Debug Original HTTP Server",
+        "Launch Inspector (Edge) - Original"
+      ],
+      "preLaunchTask": "Start Original HTTP Server (Development)",
+      "stopAll": true
+    },
+    {
+      "name": "Debug Original Service with Inspector (Chrome)",
+      "configurations": [
+        "Debug Original HTTP Server",
+        "Launch Inspector (Chrome) - Original"
+      ],
+      "preLaunchTask": "Start Original HTTP Server (Development)",
+      "stopAll": true
+    },
+    {
+      "name": "Run All Tests with Debugging",
+      "configurations": [
+        "Run Test Suite"
+      ],
+      "stopAll": true
+    },
+    {
+      "name": "Comprehensive Test Suite",
+      "configurations": [
+        "Run Test Suite",
+        "Run Unit Tests with Debug"
+      ],
+      "stopAll": true
+    },
+    {
+      "name": "Performance Analysis",
+      "configurations": [
+        "Performance Test",
+        "Debug Optimized HTTP Server"
+      ],
+      "preLaunchTask": "Start Optimized HTTP Server (Development)",
+      "stopAll": true
+    },
+    {
+      "name": "Full Development Environment",
+      "configurations": [
+        "Debug Optimized HTTP Server",
+        "Run Unit Tests with Debug"
+      ],
+      "preLaunchTask": "Type Check",
       "stopAll": true
     }
-  ],
+  ]
 }
