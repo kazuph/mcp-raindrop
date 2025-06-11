@@ -2,221 +2,29 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"type": "bun",
-			"script": "start",
-			"problemMatcher": [
-				"$tsc"
-			],
-			"label": "bun: start",
-			"detail": "Runs the Bun start script for src/index.ts",
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"presentation": {
-				"reveal": "always",
-				"panel": "shared"
-			}
-		},
-		{
-			"type": "shell",
-			"label": "bun: build",
-			"detail": "Builds the project using Bun and outputs to build/index.js",
-			"group": {
-				"kind": "build",
-				"isDefault": false
-			},
-			"command": "bun",
-			"args": [
-				"build",
-				"src/index.ts",
-				"--outfile=build/index.js"
-			],
-			"options": {
-				"cwd": "${workspaceFolder}"
-			},
-			"problemMatcher": [
-				"$tsc"
-			],
-			"presentation": {
-				"reveal": "always",
-				"panel": "shared"
-			}
-		},
-		{
-			"type": "shell",
-			"label": "Debug with Inspector",
-			"detail": "Runs the project with the Model Context Protocol Inspector for debugging",
-			"group": {
-				"kind": "test",
-				"isDefault": false
-			},
-			"command": "npx",
 			"args": [
 				"@modelcontextprotocol/inspector",
 				"bun",
 				"run",
-				"src/index.ts"
+				"src/http-server.ts"
 			],
-			"options": {
-				"cwd": "${workspaceFolder}"
-			},
-			"presentation": {
-				"reveal": "silent",
-				"panel": "new"
-			}
-		},
-		{
-			"type": "shell",
-			"label": "bun: update",
-			"detail": "Updates modules to the latest version",
-			"group": {
-				"kind": "build",
-				"isDefault": false
-			},
-			"command": "bun",
-			"args": [
-				"update"
-			],
-			"options": {
-				"cwd": "${workspaceFolder}"
-			},
-			"presentation": {
-				"reveal": "always",
-				"panel": "shared"
-			}
-		},
-		{
-			"type": "shell",
-			"label": "bun: install",
-			"detail": "Installs modules to the latest version",
-			"group": {
-				"kind": "build",
-				"isDefault": false
-			},
-			"command": "bun",
-			"args": [
-				"install"
-			],
-			"options": {
-				"cwd": "${workspaceFolder}"
-			},
-			"presentation": {
-				"reveal": "always",
-				"panel": "shared"
-			}
-		},
-		{
-			"type": "shell",
-			"label": "bun: publish",
-			"detail": "Publishes modules ",
-			"group": {
-				"kind": "build",
-				"isDefault": false
-			},
-			"command": "bun",
-			"args": [
-				"publish"
-			],
-			"options": {
-				"cwd": "${workspaceFolder}"
-			},
-			"presentation": {
-				"reveal": "always",
-				"panel": "shared"
-			}
-		},
-		{
-			"type": "npm",
-			"script": "type-check",
-			"label": "Type Check",
-			"detail": "Runs TypeScript type checking without emitting files",
-			"group": {
-				"kind": "test",
-				"isDefault": false
-			},
-			"problemMatcher": [
-				"$tsc"
-			],
-			"presentation": {
-				"reveal": "silent",
-				"panel": "shared"
-			}
-		},
-		{
-			"label": "Start MCP Server",
-			"type": "shell",
-			"command": "python -m debugpy --listen 127.0.0.1:5678 src/__init__.py sse",
+			"command": "npx",
+			"group": "test",
 			"isBackground": true,
+			"label": "Debug HTTP Server with Inspector",
 			"options": {
-				"cwd": "${workspaceFolder}",
-				"env": {
-					"PORT": "3001"
-				}
+				"cwd": "${workspaceFolder}"
 			},
-			"problemMatcher": {
-				"pattern": [
-					{
-						"regexp": "^.*$",
-						"file": 0,
-						"location": 1,
-						"message": 2
-					}
-				],
-				"background": {
-					"activeOnStart": true,
-					"beginsPattern": ".*",
-					"endsPattern": "Application startup complete|running"
-				}
-			}
-		},
-		{
-			"label": "Start MCP Inspector",
-			"type": "shell",
-			"command": "npm run dev:inspector",
-			"isBackground": true,
-			"options": {
-				"cwd": "${workspaceFolder}/inspector",
-				"env": {
-					"CLIENT_PORT": "5173",
-					"SERVER_PORT": "3000",
-				}
-			},
-			"problemMatcher": {
-				"pattern": [
-					{
-						"regexp": "^.*$",
-						"file": 0,
-						"location": 1,
-						"message": 2
-					}
-				],
-				"background": {
-					"activeOnStart": true,
-					"beginsPattern": "Starting MCP inspector",
-					"endsPattern": "Proxy server listening on port"
-				}
-			},
-			"dependsOn": [
-				"Start MCP Server"
-			]
-		},
-		{
-			"label": "Open Agent Builder",
-			"type": "shell",
-			"command": "echo ${input:openAgentBuilder}",
 			"presentation": {
-				"reveal": "never"
+				"clear": false,
+				"echo": true,
+				"focus": false,
+				"panel": "shared",
+				"reveal": "always",
+				"showReuseMessage": true
 			},
-			"dependsOn": [
-				"Start MCP Server"
-			],
-		},
-		{
-			"label": "Terminate All Tasks",
-			"command": "echo ${input:terminate}",
-			"type": "shell",
-			"problemMatcher": []
+			"problemMatcher": [],
+			"type": "shell"
 		}
 	],
 	"inputs": [

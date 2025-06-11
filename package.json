@@ -1,6 +1,6 @@
 {
     "name": "@adeze/raindrop-mcp",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "description": "MCP Server for Raindrop.io",
     "main": "index.js",
     "module": "src/index.ts",
@@ -16,17 +16,23 @@
     "private": false,
     "scripts": {
         "dev": "bun --watch src/index.ts",
+        "dev:http": "bun --watch src/http-server.ts",
         "inspector": "npx @modelcontextprotocol/inspector bun run src/index.ts",
+        "inspector:http": "npx @modelcontextprotocol/inspector bun run src/http-server.ts",
         "type-check": "tsc --noEmit",
         "test": "bun test",
         "test:coverage": "bun test --coverage",
+        "test:http": "bun run src/test-client.ts",
         "run build": "bun run build/index.js",
-        "build": "bun build --target=node --format=esm --outdir=build ./src/index.ts ./src/cli.ts",
-        "start src": "bun run src/index.ts",
+        "build": "bun build --target=node --format=esm --outdir=build ./src/index.ts ./src/cli.ts ./src/http-server.ts ./src/test-client.ts",
+        "start": "bun run src/index.ts",
+        "start:http": "bun run src/http-server.ts",
+        "start:sse": "bun run src/sse.ts",
+        "health": "curl -s http://localhost:3001/health | jq",
         "debug": "bun run inspector",
+        "debug:http": "bun run inspector:http",
         "clean": "rm -rf build",
         "prebuild": "bun run clean",
-        "start:http": "bun run src/sse.ts",
         "mcp": "bun run src/index.js",
         "bump:patch": "npm version patch",
         "bump:minor": "npm version minor",
@@ -60,17 +66,17 @@
         "esm": "^3.2.25",
         "express": "^5.1.0",
         "rate-limiter-flexible": "^6.2.1",
-        "zod": "^3.25.51",
+        "zod": "^3.25.58",
         "zod-to-json-schema": "^3.24.5"
     },
     "devDependencies": {
         "@modelcontextprotocol/inspector": "^0.12.0",
         "@types/bun": "^1.2.15",
-        "@types/express": "^5.0.2",
-        "@types/node": "^20.17.57",
-        "@vitest/coverage-v8": "^3.2.1",
+        "@types/express": "^5.0.3",
+        "@types/node": "^20.19.0",
+        "@vitest/coverage-v8": "^3.2.3",
         "typescript": "^5.8.3",
-        "vitest": "^3.2.1"
+        "vitest": "^3.2.3"
     },
     "engines": {
         "bun": ">=0.0.91"
