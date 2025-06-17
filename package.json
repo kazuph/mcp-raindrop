@@ -1,6 +1,6 @@
 {
     "name": "@adeze/raindrop-mcp",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "MCP Server for Raindrop.io",
     "main": "index.js",
     "module": "src/index.ts",
@@ -79,20 +79,20 @@
         "dotenv": "^16.5.0",
         "esm": "^3.2.25",
         "express": "^5.1.0",
-        "rate-limiter-flexible": "^6.2.1",
+        "rate-limiter-flexible": "^7.1.1",
         "zod": "^3.25.67",
         "zod-to-json-schema": "^3.24.5"
     },
     "devDependencies": {
-        "@modelcontextprotocol/inspector": "^0.12.0",
+        "@modelcontextprotocol/inspector": "^0.14.2",
         "@types/bun": "^1.2.16",
         "@types/express": "^5.0.3",
-        "@types/node": "^20.19.1",
+        "@types/node": "^24.0.3",
         "@vitest/coverage-v8": "^3.2.3",
         "typescript": "^5.8.3",
         "vitest": "^3.2.3"
     },
     "engines": {
-        "bun": ">=0.0.91"
+        "bun": "^0.0.91"
     }
 }
