@@ -113,10 +113,10 @@ export class OptimizedRaindropMCPService {
      * All data is provided as structured YAML files for better organization
      */
     private initializeResources() {
-        // Summary Resource - Collections, Tags, User Info in one YAML
+        // Collections and Tags Resource - Collections, Tags, User Info in one YAML
         this.server.resource(
-            "raindrop-summary",
-            "raindrop://data/summary.yaml",
+            "raindrop-collections-and-tags",
+            "raindrop://data/collections-and-tags.yaml",
             async (uri) => {
                 const [collections, tags, userInfo, userStats] = await Promise.all([
                     raindropService.getCollections(),
@@ -148,7 +148,7 @@ export class OptimizedRaindropMCPService {
 
                 return {
                     contents: [{
-                        uri: "raindrop://data/summary.yaml",
+                        uri: "raindrop://data/collections-and-tags.yaml",
                         text: yaml,
                         mimeType: "application/x-yaml"
                     }]
@@ -161,10 +161,16 @@ export class OptimizedRaindropMCPService {
             "recent-bookmarks-yaml",
             "raindrop://bookmarks/recent.yaml",
             async (uri) => {
-                const result = await raindropService.getBookmarks({ 
-                    perPage: 30, 
-                    sort: '-created' 
-                });
+                const [result, collections] = await Promise.all([
+                    raindropService.getBookmarks({ 
+                        perPage: 30, 
+                        sort: '-created' 
+                    }),
+                    raindropService.getCollections()
+                ]);
+                
+                // Create collection lookup map
+                const collectionMap = new Map(collections.map(c => [c._id, c.title]));
                 
                 const yaml = this.generateYAML({
                     metadata: {
@@ -180,6 +186,7 @@ export class OptimizedRaindropMCPService {
                         excerpt: bookmark.excerpt || '',
                         tags: bookmark.tags || [],
                         collection_id: bookmark.collection?.$id,
+                        collection_name: collectionMap.get(bookmark.collection?.$id) || 'Unknown Collection',
                         created: bookmark.created,
                         last_update: bookmark.lastUpdate,
                         type: bookmark.type,
@@ -253,6 +260,7 @@ export class OptimizedRaindropMCPService {
                             excerpt: bookmark.excerpt || '',
                             tags: bookmark.tags || [],
                             collection_id: bookmark.collection?.$id,
+                            collection_name: unreadCollection.title,
                             created: bookmark.created,
                             last_update: bookmark.lastUpdate,
                             type: bookmark.type,
