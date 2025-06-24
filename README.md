@@ -160,6 +160,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📋 Recent Enhancements
 
-- **Tool Optimization**: 37→24 tools with enhanced AI-friendly descriptions
+### 🎯 **v1.5.1 - YAML Resource Consolidation & LLM Optimization**
+- **✅ 20-File Limit Fixed**: Resolved Claude Code attachment limit error
+- **🤖 LLM-Friendly**: Added human-readable collection names to YAML
+- **📁 Consolidated Resources**: 4 organized YAML files instead of 15+ individual resources
+- **⚡ Performance**: Parallel loading and optimized data structures
+- **🔄 Backward Compatible**: All 24 tools remain unchanged
+
+### 🛠️ **Previous Updates**
+- **Tool Optimization**: 37→24 tools with enhanced AI-friendly descriptions  
 - **VS Code Configuration**: Enterprise-grade testing & debugging support
 - **Forked from**: [adeze/raindrop-mcp](https://github.com/adeze/raindrop-mcp) - Thanks to Adam E for the original implementation
+
+For detailed release information, see [RELEASE_NOTES.md](./RELEASE_NOTES.md)
