@@ -4,7 +4,7 @@
     "": {
       "name": "raindrop-mcp",
       "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.12.3",
+        "@modelcontextprotocol/sdk": "^1.13.0",
         "axios": "^1.10.0",
         "dotenv": "^16.5.0",
         "esm": "^3.2.25",
@@ -14,13 +14,13 @@
         "zod-to-json-schema": "^3.24.5",
       },
       "devDependencies": {
-        "@modelcontextprotocol/inspector": "^0.14.2",
-        "@types/bun": "^1.2.16",
+        "@modelcontextprotocol/inspector": "^0.14.3",
+        "@types/bun": "^1.2.17",
         "@types/express": "^5.0.3",
         "@types/node": "^24.0.3",
-        "@vitest/coverage-v8": "^3.2.3",
+        "@vitest/coverage-v8": "^3.2.4",
         "typescript": "^5.8.3",
-        "vitest": "^3.2.3",
+        "vitest": "^3.2.4",
       },
     },
   },

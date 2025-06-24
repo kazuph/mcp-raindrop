@@ -50,7 +50,9 @@ class RaindropService {
   }
 
   async getChildCollections(parentId: number): Promise<Collection[]> {
-    const { data } = await this.api.get(`/collections/${parentId}/childrens`);
+    const { data } = await this.api.get('/collections/childrens', {
+      params: { id: parentId }
+    });
     return data.items;
   }
 
@@ -140,7 +142,7 @@ class RaindropService {
     ids: number[], 
     updates: { tags?: string[]; collection?: number; important?: boolean; broken?: boolean; }
   ): Promise<{ result: boolean }> {
-    const { data } = await this.api.put('/raindrops', {
+    const { data } = await this.api.put('/raindrops/0', {
       ids,
       ...updates
     });
@@ -172,8 +174,8 @@ class RaindropService {
   async renameTag(collectionId: number | undefined, oldName: string, newName: string): Promise<{ result: boolean }> {
     const endpoint = collectionId ? `/tags/${collectionId}` : '/tags/0';
     const { data } = await this.api.put(endpoint, {
-      from: oldName,
-      to: newName
+      tags: [oldName],
+      replace: newName
     });
     return { result: data.result };
   }
@@ -182,7 +184,7 @@ class RaindropService {
     const endpoint = collectionId ? `/tags/${collectionId}` : '/tags/0';
     const { data } = await this.api.put(endpoint, {
       tags,
-      to: newName
+      replace: newName
     });
     return { result: data.result };
   }
@@ -234,29 +236,25 @@ class RaindropService {
   // Highlights
   async getHighlights(raindropId: number): Promise<Highlight[]> {
     try {
-      // According to the documentation, the endpoint for a specific raindrop's highlights is /raindrop/{id}/highlights
-      const { data } = await this.api.get(`/raindrop/${raindropId}/highlights`);
+      // Correct approach: get the raindrop and extract highlights from its response
+      const { data } = await this.api.get(`/raindrop/${raindropId}`);
       
-      // Check for items array in response
-      if (data && Array.isArray(data.items)) {
-        return data.items.map((item: any) => this.mapHighlightData({
-          ...item, 
-          raindrop: item.raindrop || { _id: raindropId }
-        })).filter(Boolean);
-      }
-      
-      // Also try result array format
-      if (data && Array.isArray(data.result)) {
-        return data.result.map((item: any) => this.mapHighlightData({
-          ...item, 
-          raindrop: item.raindrop || { _id: raindropId }
+      if (data && data.item && data.item.highlights && Array.isArray(data.item.highlights)) {
+        return data.item.highlights.map((highlight: any) => this.mapHighlightData({
+          ...highlight,
+          raindrop: {
+            _id: raindropId,
+            title: data.item.title || '',
+            link: data.item.link || '',
+            collection: data.item.collection || { $id: 0 }
+          }
         })).filter(Boolean);
       }
       
       return [];
     } catch (error) {
       if (error instanceof AxiosError && error.response?.status === 404) {
-        return []; // Return empty array if no highlights found
+        return []; // Return empty array if raindrop not found
       }
       throw new Error(`Failed to get highlights for raindrop ${raindropId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -384,26 +382,45 @@ class RaindropService {
 
   async createHighlight(raindropId: number, highlightData: { text: string; note?: string; color?: string }): Promise<Highlight> {
     try {
-      const { data } = await this.api.post('/highlights', {
-        ...highlightData,
-        raindrop: { $id: raindropId }
+      // First get the current raindrop to get existing highlights
+      const { data: currentData } = await this.api.get(`/raindrop/${raindropId}`);
+      const existingHighlights = currentData.item.highlights || [];
+      
+      // Create new highlight with unique ID
+      const newHighlight = {
+        _id: Date.now(), // Simple ID generation
+        text: highlightData.text,
+        note: highlightData.note || '',
+        color: highlightData.color || 'yellow',
+        created: new Date().toISOString(),
+        lastUpdate: new Date().toISOString()
+      };
+      
+      // Update raindrop with new highlights array
+      const { data } = await this.api.put(`/raindrop/${raindropId}`, {
+        highlights: [...existingHighlights, newHighlight]
       });
       
       if (!data || !data.item) {
         throw new Error('Invalid response structure from Raindrop.io API');
       }
       
-      // Use the map helper to ensure consistent formatting
-      const highlight = this.mapHighlightData({
-        ...data.item,
-        raindrop: data.item.raindrop || { _id: raindropId }
+      // Return the created highlight
+      const createdHighlight = this.mapHighlightData({
+        ...newHighlight,
+        raindrop: {
+          _id: raindropId,
+          title: data.item.title || '',
+          link: data.item.link || '',
+          collection: data.item.collection || { $id: 0 }
+        }
       });
       
-      if (!highlight) {
+      if (!createdHighlight) {
         throw new Error('Failed to create highlight: Invalid response data');
       }
       
-      return highlight;
+      return createdHighlight;
     } catch (error) {
       throw new Error(`Failed to create highlight: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -411,19 +428,65 @@ class RaindropService {
 
   async updateHighlight(id: number, updates: { text?: string; note?: string; color?: string }): Promise<Highlight> {
     try {
-      const { data } = await this.api.put(`/highlights/${id}`, updates);
+      // Find the raindrop containing this highlight by searching through highlights
+      const { data: allHighlights } = await this.api.get('/highlights');
+      let targetRaindropId: number | null = null;
       
-      if (!data || !data.item) {
-        throw new Error('Invalid response structure from Raindrop.io API');
+      if (allHighlights && allHighlights.items) {
+        for (const item of allHighlights.items) {
+          if (item._id === id && item.raindrop && item.raindrop._id) {
+            targetRaindropId = item.raindrop._id;
+            break;
+          }
+        }
       }
       
-      const highlight = this.mapHighlightData(data.item);
+      if (!targetRaindropId) {
+        throw new Error(`Highlight with ID ${id} not found`);
+      }
       
-      if (!highlight) {
+      // Get the current raindrop
+      const { data: currentData } = await this.api.get(`/raindrop/${targetRaindropId}`);
+      const highlights = currentData.item.highlights || [];
+      
+      // Find and update the specific highlight
+      const updatedHighlights = highlights.map((highlight: any) => {
+        if (highlight._id === id) {
+          return {
+            ...highlight,
+            ...updates,
+            lastUpdate: new Date().toISOString()
+          };
+        }
+        return highlight;
+      });
+      
+      // Update raindrop with modified highlights
+      const { data } = await this.api.put(`/raindrop/${targetRaindropId}`, {
+        highlights: updatedHighlights
+      });
+      
+      // Find and return the updated highlight
+      const updatedHighlight = updatedHighlights.find((h: any) => h._id === id);
+      if (!updatedHighlight) {
+        throw new Error('Failed to find updated highlight');
+      }
+      
+      const mappedHighlight = this.mapHighlightData({
+        ...updatedHighlight,
+        raindrop: {
+          _id: targetRaindropId,
+          title: data.item.title || '',
+          link: data.item.link || '',
+          collection: data.item.collection || { $id: 0 }
+        }
+      });
+      
+      if (!mappedHighlight) {
         throw new Error('Failed to update highlight: Invalid response data');
       }
       
-      return highlight;
+      return mappedHighlight;
     } catch (error) {
       throw new Error(`Failed to update highlight: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -431,7 +494,34 @@ class RaindropService {
 
   async deleteHighlight(id: number): Promise<void> {
     try {
-      await this.api.delete(`/highlights/${id}`);
+      // Find the raindrop containing this highlight
+      const { data: allHighlights } = await this.api.get('/highlights');
+      let targetRaindropId: number | null = null;
+      
+      if (allHighlights && allHighlights.items) {
+        for (const item of allHighlights.items) {
+          if (item._id === id && item.raindrop && item.raindrop._id) {
+            targetRaindropId = item.raindrop._id;
+            break;
+          }
+        }
+      }
+      
+      if (!targetRaindropId) {
+        throw new Error(`Highlight with ID ${id} not found`);
+      }
+      
+      // Get the current raindrop
+      const { data: currentData } = await this.api.get(`/raindrop/${targetRaindropId}`);
+      const highlights = currentData.item.highlights || [];
+      
+      // Remove the specific highlight
+      const updatedHighlights = highlights.filter((highlight: any) => highlight._id !== id);
+      
+      // Update raindrop with filtered highlights
+      await this.api.put(`/raindrop/${targetRaindropId}`, {
+        highlights: updatedHighlights
+      });
     } catch (error) {
       throw new Error(`Failed to delete highlight with ID ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -468,7 +558,7 @@ class RaindropService {
       delete queryParams.createdEnd;
     }
     
-    const { data } = await this.api.get('/raindrops', { 
+    const { data } = await this.api.get('/raindrops/0', { 
       params: queryParams 
     });
     

@@ -6,14 +6,14 @@
 - [Model Context Protocol with LLMs](https://modelcontextprotocol.io/llms-full.txt)
 - [MCP Typescript SDK v1.9.0](https://github.com/modelcontextprotocol/typescript-sdk)
 - [Example MCP servers repository](https://github.com/modelcontextprotocol/servers)
-- [This project on GitHub](https://github.com/adeze/raindrop-mcp)
+- [This project on GitHub](https://github.com/kazuph/mcp-raindrop)
 
 ## Installation and Usage
 
 ### NPM Package
 You can use this package directly from npm:
 ```bash
-npx @adeze/raindrop-mcp
+npx @kazuph/mcp-raindrop
 ```
 
 ### Development Commands
@@ -73,7 +73,7 @@ To use this MCP server with your AI assistant, add the following to your `.mcp.j
   "servers": {
     "raindrop": {
       "type": "stdio",
-      "command": "npx @adeze/raindrop-mcp",
+      "command": "npx @kazuph/mcp-raindrop",
       "env": {
         "RAINDROP_ACCESS_TOKEN": "YOUR_API_TOKEN_HERE"
       }

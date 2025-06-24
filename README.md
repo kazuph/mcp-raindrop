@@ -1,10 +1,10 @@
 # Raindrop.io MCP Server
 
-[![smithery badge](https://smithery.ai/badge/@adeze/raindrop-mcp)](https://smithery.ai/server/@adeze/raindrop-mcp)
+[![smithery badge](https://smithery.ai/badge/@kazuph/mcp-raindrop)](https://smithery.ai/server/@kazuph/mcp-raindrop)
 
 This project provides a Model Context Protocol (MCP) server for interacting with the [Raindrop.io](https://raindrop.io/) bookmarking service. It allows Language Models (LLMs) and other AI agents to access and manage your Raindrop.io data through the MCP standard.
 
-[![npm version](https://badge.fury.io/js/%40adeze%2Fraindrop-mcp.svg)](https://www.npmjs.com/package/@adeze/raindrop-mcp)
+[![npm version](https://badge.fury.io/js/%40kazuph%2Fmcp-raindrop.svg)](https://www.npmjs.com/package/@kazuph/mcp-raindrop)
 
 ## Features
 
@@ -41,7 +41,7 @@ You can run the server directly using npx without installing it:
 export RAINDROP_ACCESS_TOKEN=YOUR_RAINDROP_ACCESS_TOKEN
 
 # Run the server
-npx @adeze/raindrop-mcp
+npx @kazuph/mcp-raindrop
 ```
 
 ### From Source
@@ -49,7 +49,7 @@ npx @adeze/raindrop-mcp
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/adeze/raindrop-mcp.git
+    git clone https://github.com/kazuph/mcp-raindrop.git
     cd raindrop-mcp
     ```
 
@@ -106,7 +106,7 @@ To use the Raindrop MCP server with your AI assistant or MCP-compatible client, 
 "raindrop": {
   "command": "npx",
   "args": [
-    "@adeze/raindrop-mcp"
+    "@kazuph/mcp-raindrop"
   ],
   "env": {
     "RAINDROP_ACCESS_TOKEN": "YOUR_RAINDROP_API_TOKEN"
@@ -135,5 +135,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📋 Recent Enhancements
 
-- **[Tool Optimization](https://github.com/adeze/raindrop-mcp/issues/2)**: 37→24 tools with enhanced AI-friendly descriptions
-- **[VS Code Configuration](https://github.com/adeze/raindrop-mcp/issues/3)**: Enterprise-grade testing & debugging support
+- **Tool Optimization**: 37→24 tools with enhanced AI-friendly descriptions
+- **VS Code Configuration**: Enterprise-grade testing & debugging support
+- **Forked from**: [adeze/raindrop-mcp](https://github.com/adeze/raindrop-mcp) - Thanks to Adam E for the original implementation

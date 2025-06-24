@@ -1,17 +1,17 @@
 {
-    "name": "@adeze/raindrop-mcp",
-    "version": "1.1.2",
+    "name": "@kazuph/mcp-raindrop",
+    "version": "1.3.0",
     "description": "MCP Server for Raindrop.io",
-    "main": "index.js",
-    "module": "src/index.ts",
+    "main": "build/src/index.js",
+    "module": "build/src/index.js",
     "type": "module",
     "bin": {
-        "raindrop-mcp": "./build/cli.js"
+        "mcp-raindrop": "./build/src/cli.js"
     },
     "files": [
-        "dist",
         "build",
-        "cli.js"
+        "LICENSE",
+        "README.md"
     ],
     "private": false,
     "scripts": {
@@ -54,7 +54,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/adeze/raindrop-mcp.git"
+        "url": "git+https://github.com/kazuph/mcp-raindrop.git"
     },
     "publishConfig": {
         "registry": "https://registry.npmjs.org/",
@@ -67,12 +67,12 @@
         "mcp-server",
         "raindrop"
     ],
-    "author": "Adam E",
+    "author": "kazuph",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/adeze/raindrop-mcp/issues"
+        "url": "https://github.com/kazuph/mcp-raindrop/issues"
     },
-    "homepage": "https://github.com/adeze/raindrop-mcp#readme",
+    "homepage": "https://github.com/kazuph/mcp-raindrop#readme",
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.13.0",
         "axios": "^1.10.0",

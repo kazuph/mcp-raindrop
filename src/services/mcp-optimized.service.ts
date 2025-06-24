@@ -78,7 +78,7 @@ export class OptimizedRaindropMCPService {
                 return {
                     contents: collections.map(collection => ({
                         uri: `raindrop://collections/item/${collection._id}`,
-                        text: `${collection.title} (${collection.count} items)`,
+                        text: `${collection.title} (ID: ${collection._id}, ${collection.count} items)${collection.title.toLowerCase().includes('archive') ? ' 📦' : ''}${collection.title.toLowerCase().includes('unread') ? ' 📚' : ''}`,
                         metadata: {
                             id: collection._id,
                             title: collection.title,
@@ -86,7 +86,11 @@ export class OptimizedRaindropMCPService {
                             public: collection.public,
                             created: collection.created,
                             lastUpdate: collection.lastUpdate,
-                            category: 'collection'
+                            category: 'collection',
+                            isArchive: collection.title.toLowerCase().includes('archive'),
+                            isUnread: collection.title.toLowerCase().includes('unread'),
+                            commonNames: collection.title.toLowerCase().includes('archive') ? ['archive', 'アーカイブ'] : 
+                                       collection.title.toLowerCase().includes('unread') ? ['unread', 'アンリード'] : []
                         }
                     }))
                 };
@@ -415,6 +419,62 @@ export class OptimizedRaindropMCPService {
         );
 
         this.server.tool(
+            'collection_find',
+            'Find collection ID by name (e.g., "archive", "unread", "アーカイブ"). This helps identify target collections for moving bookmarks.',
+            {
+                name: z.string().describe('Collection name to search for (case-insensitive, supports partial matches)')
+            },
+            async ({ name }) => {
+                try {
+                    const collections = await raindropService.getCollections();
+                    const searchTerm = name.toLowerCase();
+                    
+                    const matches = collections.filter(collection => 
+                        collection.title.toLowerCase().includes(searchTerm) ||
+                        (searchTerm === 'archive' && collection.title.toLowerCase().includes('archive')) ||
+                        (searchTerm === 'アーカイブ' && collection.title.toLowerCase().includes('archive')) ||
+                        (searchTerm === 'unread' && collection.title.toLowerCase().includes('unread')) ||
+                        (searchTerm === 'アンリード' && collection.title.toLowerCase().includes('unread'))
+                    );
+
+                    if (matches.length === 0) {
+                        return {
+                            content: [{
+                                type: "text",
+                                text: `❌ No collections found matching "${name}"\n\n📋 Available collections:\n` +
+                                      collections.map(c => `• ${c.title} (ID: ${c._id})`).join('\n'),
+                                metadata: {
+                                    searchTerm: name,
+                                    found: false,
+                                    availableCollections: collections.map(c => ({ id: c._id, title: c.title })),
+                                    category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
+                                }
+                            }]
+                        };
+                    }
+
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `✅ Found ${matches.length} collection(s) matching "${name}":\n\n` +
+                                  matches.map(c => `📁 ${c.title} (ID: ${c._id}, ${c.count} items)`).join('\n') +
+                                  (matches.length === 1 ? `\n\n💡 Use collection ID ${matches[0]._id} for operations.` : ''),
+                            metadata: {
+                                searchTerm: name,
+                                found: true,
+                                matches: matches.map(c => ({ id: c._id, title: c.title, count: c.count })),
+                                primaryMatch: matches[0] ? { id: matches[0]._id, title: matches[0].title } : null,
+                                category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
+                            }
+                        }]
+                    };
+                } catch (error) {
+                    throw new Error(`Failed to find collection: ${(error as Error).message}`);
+                }
+            }
+        );
+
+        this.server.tool(
             'collection_update',
             'Update collection properties like title, visibility, or view settings. Use this to rename collections or change their configuration.',
             {
@@ -581,23 +641,20 @@ export class OptimizedRaindropMCPService {
                     const result = await raindropService.searchRaindrops(params);
                     return {
                         content: result.items.map(bookmark => ({
-                            type: "resource",
-                            resource: {
-                                text: `${bookmark.title || 'Untitled'} - ${bookmark.link}`,
-                                uri: bookmark.link,
-                                metadata: {
-                                    id: bookmark._id,
-                                    title: bookmark.title,
-                                    link: bookmark.link,
-                                    excerpt: bookmark.excerpt,
-                                    tags: bookmark.tags,
-                                    collectionId: bookmark.collection?.$id,
-                                    created: bookmark.created,
-                                    lastUpdate: bookmark.lastUpdate,
-                                    type: bookmark.type,
-                                    important: bookmark.important,
-                                    category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
-                                }
+                            type: "text",
+                            text: `📚 [ID: ${bookmark._id}] ${bookmark.title || 'Untitled'}\n🔗 ${bookmark.link}\n📝 ${bookmark.excerpt || 'No description'}\n🏷️  Tags: ${bookmark.tags?.join(', ') || 'No tags'}\n📅 Created: ${bookmark.created}`,
+                            metadata: {
+                                id: bookmark._id,
+                                title: bookmark.title,
+                                link: bookmark.link,
+                                excerpt: bookmark.excerpt,
+                                tags: bookmark.tags,
+                                collectionId: bookmark.collection?.$id,
+                                created: bookmark.created,
+                                lastUpdate: bookmark.lastUpdate,
+                                type: bookmark.type,
+                                important: bookmark.important,
+                                category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
                             }
                         })),
                         metadata: {
@@ -645,6 +702,18 @@ export class OptimizedRaindropMCPService {
                         }]
                     };
                 } catch (error) {
+                    // Check if it's a 404 error (bookmark not found)
+                    if (error instanceof Error && error.message.includes('404')) {
+                        // Get recent bookmarks to suggest alternatives
+                        try {
+                            const recent = await raindropService.getBookmarks({ perPage: 5, sort: '-created' });
+                            const suggestions = recent.items.map(b => `${b._id}: ${b.title}`).join('\n');
+                            
+                            throw new Error(`❌ Bookmark ID ${id} not found.\n\n💡 Here are your 5 most recent bookmarks:\n${suggestions}\n\n🔍 Try using bookmark_search to find the bookmark you're looking for.`);
+                        } catch {
+                            throw new Error(`❌ Bookmark ID ${id} not found. Use bookmark_search to find available bookmarks.`);
+                        }
+                    }
                     throw new Error(`Failed to get bookmark: ${(error as Error).message}`);
                 }
             }
@@ -691,6 +760,40 @@ export class OptimizedRaindropMCPService {
                     };
                 } catch (error) {
                     throw new Error(`Failed to create bookmark: ${(error as Error).message}`);
+                }
+            }
+        );
+
+        this.server.tool(
+            'bookmark_recent',
+            'Get your most recent bookmarks. This is useful to quickly see your latest saved items and their IDs for further operations.',
+            {
+                count: z.number().min(1).max(20).optional().default(10).describe('Number of recent bookmarks to retrieve (1-20, default: 10)')
+            },
+            async ({ count = 10 }) => {
+                try {
+                    const result = await raindropService.getBookmarks({ 
+                        perPage: count, 
+                        sort: '-created' 
+                    });
+                    
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `🕒 Your ${result.items.length} most recent bookmarks:\n\n` + 
+                                  result.items.map((bookmark, index) => 
+                                      `${index + 1}. 📚 [ID: ${bookmark._id}] ${bookmark.title || 'Untitled'}\n` +
+                                      `   🔗 ${bookmark.link}\n` +
+                                      `   📅 ${bookmark.created}\n`
+                                  ).join('\n'),
+                            metadata: {
+                                total: result.items.length,
+                                category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
+                            }
+                        }]
+                    };
+                } catch (error) {
+                    throw new Error(`Failed to get recent bookmarks: ${(error as Error).message}`);
                 }
             }
         );
