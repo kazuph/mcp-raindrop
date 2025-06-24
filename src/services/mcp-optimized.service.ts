@@ -65,54 +65,142 @@ export class OptimizedRaindropMCPService {
     }
 
     /**
-     * Initialize standardized resources with consistent URI patterns
-     * All resources follow the pattern: raindrop://{type}/{scope}[/{id}]
-     * Includes auto-loaded recent bookmarks for immediate access
+     * Generate YAML string from JavaScript object
+     * Simple YAML generator for basic objects and arrays
+     */
+    private generateYAML(obj: any, indent = 0): string {
+        const spaces = '  '.repeat(indent);
+        
+        if (obj === null || obj === undefined) {
+            return 'null';
+        }
+        
+        if (typeof obj === 'string') {
+            // Escape strings that need quotes
+            if (/[:\n\r"'\[\]{}]/.test(obj) || obj.trim() !== obj) {
+                return `"${obj.replace(/"/g, '\\"')}"`;
+            }
+            return obj;
+        }
+        
+        if (typeof obj === 'number' || typeof obj === 'boolean') {
+            return String(obj);
+        }
+        
+        if (Array.isArray(obj)) {
+            if (obj.length === 0) return '[]';
+            return obj.map(item => `\n${spaces}- ${this.generateYAML(item, indent + 1).replace(/\n/g, `\n${spaces}  `)}`).join('');
+        }
+        
+        if (typeof obj === 'object') {
+            const entries = Object.entries(obj);
+            if (entries.length === 0) return '{}';
+            
+            return entries.map(([key, value]) => {
+                const yamlValue = this.generateYAML(value, indent + 1);
+                if (yamlValue.includes('\n')) {
+                    return `\n${spaces}${key}:${yamlValue.replace(/\n/g, `\n${spaces}`)}`;
+                }
+                return `\n${spaces}${key}: ${yamlValue}`;
+            }).join('');
+        }
+        
+        return String(obj);
+    }
+
+    /**
+     * Initialize YAML-based consolidated resources to avoid 20-file limit
+     * All data is provided as structured YAML files for better organization
      */
     private initializeResources() {
-        // Recent Bookmarks Resource - Auto-loaded on startup
+        // Summary Resource - Collections, Tags, User Info in one YAML
         this.server.resource(
-            "recent-bookmarks",
-            "raindrop://bookmarks/recent",
+            "raindrop-summary",
+            "raindrop://data/summary.yaml",
+            async (uri) => {
+                const [collections, tags, userInfo, userStats] = await Promise.all([
+                    raindropService.getCollections(),
+                    raindropService.getTags(),
+                    raindropService.getUserInfo(),
+                    raindropService.getUserStats()
+                ]);
+
+                const yaml = this.generateYAML({
+                    user: {
+                        info: userInfo,
+                        stats: userStats
+                    },
+                    collections: collections.map(c => ({
+                        id: c._id,
+                        title: c.title,
+                        count: c.count,
+                        public: c.public,
+                        created: c.created,
+                        lastUpdate: c.lastUpdate,
+                        isArchive: c.title.toLowerCase().includes('archive'),
+                        isUnread: c.title.toLowerCase().includes('unread') || c.title.toLowerCase().includes('未読') || c.title.toLowerCase().includes('アンリード')
+                    })),
+                    tags: tags.map(t => ({
+                        name: t._id,
+                        count: t.count
+                    }))
+                });
+
+                return {
+                    contents: [{
+                        uri: "raindrop://data/summary.yaml",
+                        text: yaml,
+                        mimeType: "application/x-yaml"
+                    }]
+                };
+            }
+        );
+
+        // Recent Bookmarks YAML Resource
+        this.server.resource(
+            "recent-bookmarks-yaml",
+            "raindrop://bookmarks/recent.yaml",
             async (uri) => {
                 const result = await raindropService.getBookmarks({ 
                     perPage: 30, 
                     sort: '-created' 
                 });
                 
-                return {
-                    contents: result.items.map(bookmark => ({
-                        uri: `raindrop://bookmarks/item/${bookmark._id}`,
-                        text: `📚 [ID: ${bookmark._id}] ${bookmark.title || 'Untitled'}\n🔗 ${bookmark.link}\n📝 ${bookmark.excerpt || 'No description'}\n🏷️ Tags: ${bookmark.tags?.join(', ') || 'No tags'}\n📅 ${bookmark.created}`,
-                        metadata: {
-                            id: bookmark._id,
-                            title: bookmark.title,
-                            link: bookmark.link,
-                            excerpt: bookmark.excerpt,
-                            tags: bookmark.tags,
-                            collectionId: bookmark.collection?.$id,
-                            created: bookmark.created,
-                            lastUpdate: bookmark.lastUpdate,
-                            type: bookmark.type,
-                            important: bookmark.important,
-                            category: 'recent-bookmark'
-                        }
-                    })),
+                const yaml = this.generateYAML({
                     metadata: {
                         total: result.items.length,
                         maxItems: 30,
-                        sort: 'newest first',
-                        autoLoaded: true,
-                        description: 'Your 30 most recent bookmarks, automatically loaded for quick access'
-                    }
+                        sort: 'newest_first',
+                        description: 'Your 30 most recent bookmarks'
+                    },
+                    bookmarks: result.items.map(bookmark => ({
+                        id: bookmark._id,
+                        title: bookmark.title || 'Untitled',
+                        link: bookmark.link,
+                        excerpt: bookmark.excerpt || '',
+                        tags: bookmark.tags || [],
+                        collection_id: bookmark.collection?.$id,
+                        created: bookmark.created,
+                        last_update: bookmark.lastUpdate,
+                        type: bookmark.type,
+                        important: bookmark.important
+                    }))
+                });
+
+                return {
+                    contents: [{
+                        uri: "raindrop://bookmarks/recent.yaml",
+                        text: yaml,
+                        mimeType: "application/x-yaml"
+                    }]
                 };
             }
         );
 
-        // Unread Bookmarks Resource - Auto-detect and load unread collection
+        // Unread Bookmarks YAML Resource - Auto-detect and load unread collection
         this.server.resource(
-            "unread-bookmarks", 
-            "raindrop://bookmarks/unread",
+            "unread-bookmarks-yaml", 
+            "raindrop://bookmarks/unread.yaml",
             async (uri) => {
                 try {
                     // First, find the unread collection
@@ -124,13 +212,21 @@ export class OptimizedRaindropMCPService {
                     );
 
                     if (!unreadCollection) {
-                        return {
-                            contents: [],
+                        const yaml = this.generateYAML({
                             metadata: {
                                 message: 'No unread collection found. Create a collection with "unread" in the name.',
                                 suggestion: 'Use collection_create tool to create an "Unread" collection',
-                                category: 'unread-bookmark'
-                            }
+                                available_collections: collections.map(c => ({ id: c._id, title: c.title }))
+                            },
+                            bookmarks: []
+                        });
+                        
+                        return {
+                            contents: [{
+                                uri: "raindrop://bookmarks/unread.yaml",
+                                text: yaml,
+                                mimeType: "application/x-yaml"
+                            }]
                         };
                     }
 
@@ -140,284 +236,111 @@ export class OptimizedRaindropMCPService {
                         perPage: 30, 
                         sort: '-created' 
                     });
-
-                    return {
-                        contents: result.items.map(bookmark => ({
-                            uri: `raindrop://bookmarks/item/${bookmark._id}`,
-                            text: `📚 [ID: ${bookmark._id}] ${bookmark.title || 'Untitled'}\n🔗 ${bookmark.link}\n📝 ${bookmark.excerpt || 'No description'}\n🏷️ Tags: ${bookmark.tags?.join(', ') || 'No tags'}\n📅 ${bookmark.created}`,
-                            metadata: {
-                                id: bookmark._id,
-                                title: bookmark.title,
-                                link: bookmark.link,
-                                excerpt: bookmark.excerpt,
-                                tags: bookmark.tags,
-                                collectionId: bookmark.collection?.$id,
-                                created: bookmark.created,
-                                lastUpdate: bookmark.lastUpdate,
-                                type: bookmark.type,
-                                important: bookmark.important,
-                                category: 'unread-bookmark'
-                            }
-                        })),
+                    
+                    const yaml = this.generateYAML({
                         metadata: {
                             total: result.items.length,
                             maxItems: 30,
-                            collectionId: unreadCollection._id,
-                            collectionName: unreadCollection.title,
-                            sort: 'newest first',
-                            autoLoaded: true,
+                            collection_id: unreadCollection._id,
+                            collection_name: unreadCollection.title,
+                            sort: 'newest_first',
                             description: `Your 30 most recent unread bookmarks from "${unreadCollection.title}" collection`
-                        }
+                        },
+                        bookmarks: result.items.map(bookmark => ({
+                            id: bookmark._id,
+                            title: bookmark.title || 'Untitled',
+                            link: bookmark.link,
+                            excerpt: bookmark.excerpt || '',
+                            tags: bookmark.tags || [],
+                            collection_id: bookmark.collection?.$id,
+                            created: bookmark.created,
+                            last_update: bookmark.lastUpdate,
+                            type: bookmark.type,
+                            important: bookmark.important
+                        }))
+                    });
+
+                    return {
+                        contents: [{
+                            uri: "raindrop://bookmarks/unread.yaml",
+                            text: yaml,
+                            mimeType: "application/x-yaml"
+                        }]
                     };
                 } catch (error) {
-                    return {
-                        contents: [],
+                    const yaml = this.generateYAML({
                         metadata: {
-                            error: `Failed to load unread bookmarks: ${(error as Error).message}`,
-                            category: 'unread-bookmark'
-                        }
+                            error: `Failed to load unread bookmarks: ${(error as Error).message}`
+                        },
+                        bookmarks: []
+                    });
+                    
+                    return {
+                        contents: [{
+                            uri: "raindrop://bookmarks/unread.yaml",
+                            text: yaml,
+                            mimeType: "application/x-yaml"
+                        }]
                     };
                 }
             }
         );
 
-        // Collections Resources
+        // Highlights YAML Resource - All highlights with pagination
         this.server.resource(
-            "collections-all",
-            "raindrop://collections/all",
+            "highlights-yaml",
+            "raindrop://highlights/all.yaml",
             async (uri) => {
-                const collections = await raindropService.getCollections();
-                return {
-                    contents: collections.map(collection => ({
-                        uri: `raindrop://collections/item/${collection._id}`,
-                        text: `${collection.title} (ID: ${collection._id}, ${collection.count} items)${collection.title.toLowerCase().includes('archive') ? ' 📦' : ''}${collection.title.toLowerCase().includes('unread') ? ' 📚' : ''}`,
+                try {
+                    const highlights = await raindropService.getAllHighlightsByPage(0, 50);
+                    
+                    const yaml = this.generateYAML({
                         metadata: {
-                            id: collection._id,
-                            title: collection.title,
-                            count: collection.count,
-                            public: collection.public,
-                            created: collection.created,
-                            lastUpdate: collection.lastUpdate,
-                            category: 'collection',
-                            isArchive: collection.title.toLowerCase().includes('archive'),
-                            isUnread: collection.title.toLowerCase().includes('unread'),
-                            commonNames: collection.title.toLowerCase().includes('archive') ? ['archive', 'アーカイブ'] : 
-                                       collection.title.toLowerCase().includes('unread') ? ['unread', 'アンリード'] : []
-                        }
-                    }))
-                };
-            }
-        );
-
-        this.server.resource(
-            "collection-children",
-            new ResourceTemplate("raindrop://collections/children/{parentId}", { list: undefined }),
-            async (uri, { parentId }) => {
-                const collections = await raindropService.getChildCollections(Number(parentId));
-                return {
-                    contents: collections.map(collection => ({
-                        uri: `raindrop://collections/item/${collection._id}`,
-                        text: `${collection.title} (${collection.count} items)`,
-                        metadata: {
-                            id: collection._id,
-                            title: collection.title,
-                            count: collection.count,
-                            parentId: Number(parentId),
-                            category: 'collection'
-                        }
-                    }))
-                };
-            }
-        );
-
-        // Bookmarks Resources
-        this.server.resource(
-            "collection-bookmarks",
-            new ResourceTemplate("raindrop://bookmarks/collection/{collectionId}", { list: undefined }),
-            async (uri, { collectionId }) => {
-                const result = await raindropService.getBookmarks({ collection: Number(collectionId) });
-                return {
-                    contents: result.items.map(bookmark => ({
-                        uri: `raindrop://bookmarks/item/${bookmark._id}`,
-                        text: `${bookmark.title || 'Untitled'} - ${bookmark.link}`,
-                        metadata: {
-                            id: bookmark._id,
-                            title: bookmark.title,
-                            link: bookmark.link,
-                            excerpt: bookmark.excerpt,
-                            tags: bookmark.tags,
-                            collectionId: Number(collectionId),
-                            created: bookmark.created,
-                            lastUpdate: bookmark.lastUpdate,
-                            type: bookmark.type,
-                            category: 'bookmark'
-                        }
-                    })),
-                    metadata: {
-                        collectionId: Number(collectionId),
-                        totalCount: result.count
-                    }
-                };
-            }
-        );
-
-        this.server.resource(
-            "bookmark-details",
-            new ResourceTemplate("raindrop://bookmarks/item/{bookmarkId}", { list: undefined }),
-            async (uri, { bookmarkId }) => {
-                const bookmark = await raindropService.getBookmark(Number(bookmarkId));
-                return {
-                    contents: [{
-                        uri: bookmark.link,
-                        text: `${bookmark.title || 'Untitled Bookmark'}`,
-                        metadata: {
-                            id: bookmark._id,
-                            title: bookmark.title,
-                            link: bookmark.link,
-                            excerpt: bookmark.excerpt,
-                            tags: bookmark.tags,
-                            collectionId: bookmark.collection?.$id,
-                            created: bookmark.created,
-                            lastUpdate: bookmark.lastUpdate,
-                            type: bookmark.type,
-                            important: bookmark.important,
-                            category: 'bookmark'
-                        }
-                    }]
-                };
-            }
-        );
-
-        // Tags Resources
-        this.server.resource(
-            "tags-all",
-            "raindrop://tags/all",
-            async (uri) => {
-                const tags = await raindropService.getTags();
-                return {
-                    contents: tags.map(tag => ({
-                        uri: `raindrop://tags/item/${encodeURIComponent(tag._id)}`,
-                        text: `${tag._id} (${tag.count} bookmarks)`,
-                        metadata: {
-                            name: tag._id,
-                            count: tag.count,
-                            category: 'tag'
-                        }
-                    }))
-                };
-            }
-        );
-
-        this.server.resource(
-            "collection-tags",
-            new ResourceTemplate("raindrop://tags/collection/{collectionId}", { list: undefined }),
-            async (uri, { collectionId }) => {
-                const tags = await raindropService.getTagsByCollection(Number(collectionId));
-                return {
-                    contents: tags.map(tag => ({
-                        uri: `raindrop://tags/item/${encodeURIComponent(tag._id)}`,
-                        text: `${tag._id} (${tag.count} bookmarks)`,
-                        metadata: {
-                            name: tag._id,
-                            count: tag.count,
-                            collectionId: Number(collectionId),
-                            category: 'tag'
-                        }
-                    }))
-                };
-            }
-        );
-
-        // Highlights Resources
-        this.server.resource(
-            "highlights-all",
-            "raindrop://highlights/all",
-            async (uri) => {
-                const highlights = await raindropService.getAllHighlights();
-                return {
-                    contents: highlights.map(highlight => ({
-                        uri: `raindrop://highlights/item/${highlight._id}`,
-                        text: highlight.text.substring(0, 100) + (highlight.text.length > 100 ? '...' : ''),
-                        metadata: {
+                            total: highlights.length,
+                            max_items: 50,
+                            description: 'Your saved text highlights from bookmarks'
+                        },
+                        highlights: highlights.map(highlight => ({
                             id: highlight._id,
                             text: highlight.text,
-                            raindropId: highlight.raindrop?._id,
-                            raindropTitle: highlight.raindrop?.title,
-                            raindropLink: highlight.raindrop?.link,
-                            note: highlight.note,
-                            color: highlight.color,
+                            note: highlight.note || '',
+                            color: highlight.color || '',
                             created: highlight.created,
-                            lastUpdate: highlight.lastUpdate,
-                            tags: highlight.tags,
-                            category: 'highlight'
-                        }
-                    }))
-                };
-            }
-        );
+                            last_update: highlight.lastUpdate,
+                            raindrop: {
+                                id: highlight.raindrop?._id,
+                                title: highlight.title || highlight.raindrop?.title || '',
+                                link: highlight.link || highlight.raindrop?.link || '',
+                                tags: highlight.tags || [],
+                                domain: highlight.domain || '',
+                                excerpt: highlight.excerpt || ''
+                            }
+                        }))
+                    });
 
-        this.server.resource(
-            "bookmark-highlights",
-            new ResourceTemplate("raindrop://highlights/bookmark/{bookmarkId}", { list: undefined }),
-            async (uri, { bookmarkId }) => {
-                const highlights = await raindropService.getHighlights(Number(bookmarkId));
-                return {
-                    contents: highlights.map(highlight => ({
-                        uri: `raindrop://highlights/item/${highlight._id}`,
-                        text: highlight.text.substring(0, 100) + (highlight.text.length > 100 ? '...' : ''),
+                    return {
+                        contents: [{
+                            uri: "raindrop://highlights/all.yaml",
+                            text: yaml,
+                            mimeType: "application/x-yaml"
+                        }]
+                    };
+                } catch (error) {
+                    const yaml = this.generateYAML({
                         metadata: {
-                            id: highlight._id,
-                            text: highlight.text,
-                            bookmarkId: Number(bookmarkId),
-                            note: highlight.note,
-                            color: highlight.color,
-                            created: highlight.created,
-                            lastUpdate: highlight.lastUpdate,
-                            category: 'highlight'
-                        }
-                    }))
-                };
-            }
-        );
-
-        // User Resources
-        this.server.resource(
-            "user-profile",
-            "raindrop://user/profile",
-            async (uri) => {
-                const user = await raindropService.getUserInfo();
-                return {
-                    contents: [{
-                        uri: uri.href,
-                        text: `${user.fullName || user.email} - ${user.pro ? 'Pro' : 'Free'} Account`,
-                        metadata: {
-                            id: user._id,
-                            email: user.email,
-                            fullName: user.fullName,
-                            pro: user.pro,
-                            registered: user.registered,
-                            category: 'user'
-                        }
-                    }]
-                };
-            }
-        );
-
-        this.server.resource(
-            "user-statistics",
-            "raindrop://user/statistics",
-            async (uri) => {
-                const stats = await raindropService.getUserStats();
-                return {
-                    contents: [{
-                        uri: uri.href,
-                        text: `Account Statistics`,
-                        metadata: {
-                            ...stats,
-                            category: 'user-stats'
-                        }
-                    }]
-                };
+                            error: `Failed to load highlights: ${(error as Error).message}`
+                        },
+                        highlights: []
+                    });
+                    
+                    return {
+                        contents: [{
+                            uri: "raindrop://highlights/all.yaml",
+                            text: yaml,
+                            mimeType: "application/x-yaml"
+                        }]
+                    };
+                }
             }
         );
     }
