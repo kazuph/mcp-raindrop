@@ -73,7 +73,8 @@ To use this MCP server with your AI assistant, add the following to your `.mcp.j
   "servers": {
     "raindrop": {
       "type": "stdio",
-      "command": "npx @kazuph/mcp-raindrop",
+      "command": "npx",
+      "args": ["-y", "@kazuph/mcp-raindrop@latest"],
       "env": {
         "RAINDROP_ACCESS_TOKEN": "YOUR_API_TOKEN_HERE"
       }

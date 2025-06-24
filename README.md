@@ -102,17 +102,42 @@ It also provides numerous tools for operational tasks such as collection managem
 
 To use the Raindrop MCP server with your AI assistant or MCP-compatible client, you can add the following configuration to your `.mcp.json` file:
 
+#### Recommended Configuration (Always Latest Version)
 ```json
-"raindrop": {
-  "command": "npx",
-  "args": [
-    "@kazuph/mcp-raindrop"
-  ],
-  "env": {
-    "RAINDROP_ACCESS_TOKEN": "YOUR_RAINDROP_API_TOKEN"
+{
+  "servers": {
+    "raindrop": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@kazuph/mcp-raindrop@latest"],
+      "env": {
+        "RAINDROP_ACCESS_TOKEN": "YOUR_RAINDROP_API_TOKEN"
+      }
+    }
   }
 }
 ```
+
+#### Alternative Configuration (Specific Version)
+```json
+{
+  "servers": {
+    "raindrop": {
+      "type": "stdio", 
+      "command": "npx",
+      "args": ["@kazuph/mcp-raindrop"],
+      "env": {
+        "RAINDROP_ACCESS_TOKEN": "YOUR_RAINDROP_API_TOKEN"
+      }
+    }
+  }
+}
+```
+
+**Configuration Notes:**
+- `-y` flag: Automatically accepts prompts during npm installation
+- `@latest`: Ensures you always get the latest version with new features
+- `type: "stdio"`: Specifies standard input/output communication method
 
 For Claude Code or other MCP-compatible clients, this will register the Raindrop server under the name "raindrop" and make all of its resources and tools available to your AI assistant.
 
