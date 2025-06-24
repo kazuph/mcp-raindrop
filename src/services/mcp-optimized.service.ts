@@ -67,8 +67,120 @@ export class OptimizedRaindropMCPService {
     /**
      * Initialize standardized resources with consistent URI patterns
      * All resources follow the pattern: raindrop://{type}/{scope}[/{id}]
+     * Includes auto-loaded recent bookmarks for immediate access
      */
     private initializeResources() {
+        // Recent Bookmarks Resource - Auto-loaded on startup
+        this.server.resource(
+            "recent-bookmarks",
+            "raindrop://bookmarks/recent",
+            async (uri) => {
+                const result = await raindropService.getBookmarks({ 
+                    perPage: 30, 
+                    sort: '-created' 
+                });
+                
+                return {
+                    contents: result.items.map(bookmark => ({
+                        uri: `raindrop://bookmarks/item/${bookmark._id}`,
+                        text: `📚 [ID: ${bookmark._id}] ${bookmark.title || 'Untitled'}\n🔗 ${bookmark.link}\n📝 ${bookmark.excerpt || 'No description'}\n🏷️ Tags: ${bookmark.tags?.join(', ') || 'No tags'}\n📅 ${bookmark.created}`,
+                        metadata: {
+                            id: bookmark._id,
+                            title: bookmark.title,
+                            link: bookmark.link,
+                            excerpt: bookmark.excerpt,
+                            tags: bookmark.tags,
+                            collectionId: bookmark.collection?.$id,
+                            created: bookmark.created,
+                            lastUpdate: bookmark.lastUpdate,
+                            type: bookmark.type,
+                            important: bookmark.important,
+                            category: 'recent-bookmark'
+                        }
+                    })),
+                    metadata: {
+                        total: result.items.length,
+                        maxItems: 30,
+                        sort: 'newest first',
+                        autoLoaded: true,
+                        description: 'Your 30 most recent bookmarks, automatically loaded for quick access'
+                    }
+                };
+            }
+        );
+
+        // Unread Bookmarks Resource - Auto-detect and load unread collection
+        this.server.resource(
+            "unread-bookmarks", 
+            "raindrop://bookmarks/unread",
+            async (uri) => {
+                try {
+                    // First, find the unread collection
+                    const collections = await raindropService.getCollections();
+                    const unreadCollection = collections.find(c => 
+                        c.title.toLowerCase().includes('unread') || 
+                        c.title.toLowerCase().includes('未読') ||
+                        c.title.toLowerCase().includes('アンリード')
+                    );
+
+                    if (!unreadCollection) {
+                        return {
+                            contents: [],
+                            metadata: {
+                                message: 'No unread collection found. Create a collection with "unread" in the name.',
+                                suggestion: 'Use collection_create tool to create an "Unread" collection',
+                                category: 'unread-bookmark'
+                            }
+                        };
+                    }
+
+                    // Get bookmarks from the unread collection
+                    const result = await raindropService.getBookmarks({ 
+                        collection: unreadCollection._id,
+                        perPage: 30, 
+                        sort: '-created' 
+                    });
+
+                    return {
+                        contents: result.items.map(bookmark => ({
+                            uri: `raindrop://bookmarks/item/${bookmark._id}`,
+                            text: `📚 [ID: ${bookmark._id}] ${bookmark.title || 'Untitled'}\n🔗 ${bookmark.link}\n📝 ${bookmark.excerpt || 'No description'}\n🏷️ Tags: ${bookmark.tags?.join(', ') || 'No tags'}\n📅 ${bookmark.created}`,
+                            metadata: {
+                                id: bookmark._id,
+                                title: bookmark.title,
+                                link: bookmark.link,
+                                excerpt: bookmark.excerpt,
+                                tags: bookmark.tags,
+                                collectionId: bookmark.collection?.$id,
+                                created: bookmark.created,
+                                lastUpdate: bookmark.lastUpdate,
+                                type: bookmark.type,
+                                important: bookmark.important,
+                                category: 'unread-bookmark'
+                            }
+                        })),
+                        metadata: {
+                            total: result.items.length,
+                            maxItems: 30,
+                            collectionId: unreadCollection._id,
+                            collectionName: unreadCollection.title,
+                            sort: 'newest first',
+                            autoLoaded: true,
+                            description: `Your 30 most recent unread bookmarks from "${unreadCollection.title}" collection`
+                        }
+                    };
+                } catch (error) {
+                    return {
+                        contents: [],
+                        metadata: {
+                            error: `Failed to load unread bookmarks: ${(error as Error).message}`,
+                            category: 'unread-bookmark'
+                        }
+                    };
+                }
+            }
+        );
+
         // Collections Resources
         this.server.resource(
             "collections-all",
