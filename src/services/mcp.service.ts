@@ -3,6 +3,7 @@ import {
     type LoggingLevel
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { type Bookmark } from '../types/raindrop.js';
 import raindropService from './raindrop.service.js';
 
 /**
@@ -31,6 +32,7 @@ import raindropService from './raindrop.service.js';
 export class RaindropMCPService {
     private server: McpServer;
     private logLevel: LoggingLevel = "debug";
+    private initialized: boolean = false;
 
     // Tool category constants for organization
     private static readonly CATEGORIES = {
@@ -42,8 +44,10 @@ export class RaindropMCPService {
         IMPORT_EXPORT: 'Import/Export'
     } as const;
 
-    // Map for debouncing concurrent duplicate bookmark_create requests
-    private static bookmarkCreationLocks: Map<string, Promise<Bookmark>> = new Map();
+    
+    // Global request deduplication for all tool calls
+    private static requestDeduplicationMap: Map<string, Promise<any>> = new Map();
+    private static REQUEST_TIMEOUT = 1000; // 1 second timeout for duplicate requests
 
     constructor() {
         this.server = new McpServer({
@@ -58,6 +62,38 @@ export class RaindropMCPService {
         this.setupLogging();
         this.initializeResources();
         this.initializeTools();
+        this.initialized = true;
+    }
+
+    /**
+     * Deduplicate concurrent requests with same parameters
+     * Returns existing promise if identical request is already in progress
+     */
+    private static async deduplicateRequest<T>(
+        key: string,
+        asyncFunction: () => Promise<T>
+    ): Promise<T> {
+        if (RaindropMCPService.requestDeduplicationMap.has(key)) {
+            console.error(`[RAINDROP_MCP] [${Date.now()}] Request deduplication: ${key} (using existing request)`);
+            return RaindropMCPService.requestDeduplicationMap.get(key)!;
+        }
+
+        const promise = asyncFunction();
+        RaindropMCPService.requestDeduplicationMap.set(key, promise);
+        
+        // Auto-cleanup after timeout
+        setTimeout(() => {
+            RaindropMCPService.requestDeduplicationMap.delete(key);
+        }, RaindropMCPService.REQUEST_TIMEOUT);
+
+        try {
+            const result = await promise;
+            RaindropMCPService.requestDeduplicationMap.delete(key);
+            return result;
+        } catch (error) {
+            RaindropMCPService.requestDeduplicationMap.delete(key);
+            throw error;
+        }
     }
 
     private setupLogging() {
@@ -358,6 +394,11 @@ export class RaindropMCPService {
      * Initialize optimized tools with enhanced descriptions and AI-friendly organization
      */
     private initializeTools() {
+        if (this.initialized) {
+            console.error(`[RAINDROP_MCP] [${Date.now()}] WARNING: Tools already initialized, skipping duplicate initialization`);
+            return;
+        }
+        
         this.initializeCollectionTools();
         this.initializeBookmarkTools();
         this.initializeTagTools();
@@ -775,45 +816,76 @@ export class RaindropMCPService {
                 important: z.boolean().optional().default(false).describe('Mark as important/starred')
             },
             async ({ url, collectionId, description, ...data }) => {
-                try {
-                    // Debug: Log bookmark creation request
-                    const requestId = Date.now().toString();
-                    console.error(`[RAINDROP_MCP] [${requestId}] bookmark_create called with URL: ${url}, Collection: ${collectionId}`);
+                const requestKey = `bookmark_create:${collectionId}:${url}`;
+                
+                return RaindropMCPService.deduplicateRequest(requestKey, async () => {
+                    try {
+                        console.error(`[RAINDROP_MCP] [${Date.now()}] bookmark_create called with URL: ${url}, Collection: ${collectionId}`);
 
-                    // Helper to canonicalize URL for reliable comparison (ignores http/https, www., trailing slashes)
-                    function canonical(urlStr: string) {
-                        try {
-                            const u = new URL(urlStr);
-                            let host = u.hostname.replace(/^www\./, "");
-                            let path = u.pathname.replace(/\/+$/, ""); // remove trailing slashes
-                            return `${host}${path}${u.search}`;
-                        } catch {
-                            return urlStr.replace(/https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+                        // Helper to canonicalize URL for reliable comparison
+                        function canonical(urlStr: string) {
+                            try {
+                                const u = new URL(urlStr);
+                                let host = u.hostname.replace(/^www\./, "");
+                                let path = u.pathname.replace(/\/+$/, "");
+                                return `${host}${path}${u.search}`;
+                            } catch {
+                                return urlStr.replace(/https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+                            }
                         }
-                    }
 
-                    const canonicalIncoming = canonical(url);
-                    console.error(`[RAINDROP_MCP] [${requestId}] Canonical URL: ${canonicalIncoming}`);
+                        const canonicalIncoming = canonical(url);
+                        console.error(`[RAINDROP_MCP] [${Date.now()}] Canonical URL: ${canonicalIncoming}`);
 
-                    console.error(`[RAINDROP_MCP] [${requestId}] Starting duplicate check...`);
-                    const existingSearch = await raindropService.searchRaindrops({
-                        search: url,
-                        collection: collectionId,
-                        perPage: 1,
-                        page: 0
-                    });
+                        // Check for existing duplicates
+                        const existingSearch = await raindropService.searchRaindrops({
+                            search: url,
+                            collection: collectionId,
+                            perPage: 1,
+                            page: 0
+                        });
 
-                    console.error(`[RAINDROP_MCP] [${requestId}] Duplicate check returned ${existingSearch.items.length} items`);
-                    const duplicate = existingSearch.items.find(b => canonical(b.link) === canonicalIncoming);
+                        const duplicate = existingSearch.items.find(b => canonical(b.link) === canonicalIncoming);
+                        if (duplicate) {
+                            console.error(`[RAINDROP_MCP] [${Date.now()}] DUPLICATE FOUND - returning existing bookmark ID: ${duplicate._id}`);
+                            return {
+                                content: [{
+                                    type: "resource",
+                                    resource: {
+                                        text: duplicate.title || 'Untitled Bookmark (already exists)',
+                                        uri: duplicate.link,
+                                        metadata: {
+                                            id: duplicate._id,
+                                            title: duplicate.title,
+                                            link: duplicate.link,
+                                            excerpt: duplicate.excerpt,
+                                            tags: duplicate.tags,
+                                            collectionId: duplicate.collection?.$id,
+                                            created: duplicate.created,
+                                            duplicate: true,
+                                            category: RaindropMCPService.CATEGORIES.BOOKMARKS
+                                        }
+                                    }
+                                }]
+                            };
+                        }
 
-                    if (duplicate) {
-                        console.error(`[RAINDROP_MCP] [${requestId}] DUPLICATE FOUND - returning existing bookmark ID: ${duplicate._id}`);
-                        const bookmark = duplicate;
+                        // Create new bookmark
+                        console.error(`[RAINDROP_MCP] [${Date.now()}] NO DUPLICATE FOUND - creating new bookmark...`);
+                        const bookmarkData = {
+                            link: url,
+                            excerpt: description,
+                            ...data
+                        };
+                        
+                        const bookmark = await raindropService.createBookmark(collectionId, bookmarkData);
+                        console.error(`[RAINDROP_MCP] [${Date.now()}] Bookmark created successfully with ID: ${bookmark._id}`);
+                        
                         return {
                             content: [{
                                 type: "resource",
                                 resource: {
-                                    text: bookmark.title || 'Untitled Bookmark (already exists)',
+                                    text: bookmark.title || 'Untitled Bookmark',
                                     uri: bookmark.link,
                                     metadata: {
                                         id: bookmark._id,
@@ -823,46 +895,15 @@ export class RaindropMCPService {
                                         tags: bookmark.tags,
                                         collectionId: bookmark.collection?.$id,
                                         created: bookmark.created,
-                                        duplicate: true,
                                         category: RaindropMCPService.CATEGORIES.BOOKMARKS
                                     }
                                 }
                             }]
                         };
+                    } catch (error) {
+                        throw new Error(`Failed to create bookmark: ${(error as Error).message}`);
                     }
-
-                    console.error(`[RAINDROP_MCP] [${requestId}] NO DUPLICATE FOUND - creating new bookmark...`);
-                    const bookmarkData = {
-                        link: url,
-                        excerpt: description,
-                        ...data
-                    };
-
-                    console.error(`[RAINDROP_MCP] [${requestId}] Calling raindropService.createBookmark...`);
-                    const bookmark = await raindropService.createBookmark(collectionId, bookmarkData);
-                    console.error(`[RAINDROP_MCP] [${requestId}] Bookmark created successfully with ID: ${bookmark._id}`);
-                    return {
-                        content: [{
-                            type: "resource",
-                            resource: {
-                                text: bookmark.title || 'Untitled Bookmark',
-                                uri: bookmark.link,
-                                metadata: {
-                                    id: bookmark._id,
-                                    title: bookmark.title,
-                                    link: bookmark.link,
-                                    excerpt: bookmark.excerpt,
-                                    tags: bookmark.tags,
-                                    collectionId: bookmark.collection?.$id,
-                                    created: bookmark.created,
-                                    category: RaindropMCPService.CATEGORIES.BOOKMARKS
-                                }
-                            }
-                        }]
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to create bookmark: ${(error as Error).message}`);
-                }
+                });
             }
         );
 
@@ -1131,7 +1172,7 @@ export class RaindropMCPService {
                         case 'rename':
                             if (!oldName || !newName) throw new Error('oldName and newName required for rename operation');
 
-                            const renameResult = await raindropService.renameTag(collectionId, oldName, newName);
+                            await raindropService.renameTag(collectionId, oldName, newName);
                             result = `Successfully renamed tag "${oldName}" to "${newName}"${collectionId ? ` in collection ${collectionId}` : ''}`;
                             break;
 
