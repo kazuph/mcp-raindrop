@@ -118,10 +118,15 @@ class RaindropService {
   }
 
   async createBookmark(collectionId: number, bookmark: Partial<Bookmark>): Promise<Bookmark> {
+    const requestId = Date.now().toString();
+    console.error(`[RAINDROP_SERVICE] [${requestId}] Creating bookmark in collection ${collectionId} with URL: ${bookmark.link}`);
+    
     const { data } = await this.api.post(`/raindrop`, {
       ...bookmark,
       collection: { $id: collectionId },
     });
+    
+    console.error(`[RAINDROP_SERVICE] [${requestId}] API response received - Bookmark created with ID: ${data.item._id}`);
     return data.item;
   }
 

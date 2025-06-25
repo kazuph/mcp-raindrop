@@ -45,8 +45,8 @@ export class RaindropMCPService {
     constructor() {
         this.server = new McpServer({
             name: 'raindrop-mcp',
-            version: '1.5.2',
-            description: 'Optimized MCP Server for Raindrop.io with enhanced AI-friendly tool organization',
+            version: '1.5.5',
+            description: 'Optimized MCP Server for Raindrop.io with enhanced AI-friendly tool organization and debug logging',
             capabilities: {
                 logging: false // Keep logging off for STDIO compatibility
             }
@@ -773,12 +773,26 @@ export class RaindropMCPService {
             },
             async ({ url, collectionId, description, ...data }) => {
                 try {
-                    // 🛡️ Duplicate protection – check if the bookmark already exists in the target collection
-                    // Raindrop sometimes allows identical URLs to be saved multiple times. However, in our
-                    // use-case duplicated calls from the MCP layer were registering two bookmarks. To make the
-                    // operation idempotent and eliminate the side-effect of accidental double invocation we
-                    // proactively look up an existing bookmark with the same URL in the same collection before
-                    // attempting to create a new one.
+                    // Debug: Log bookmark creation request
+                    const requestId = Date.now().toString();
+                    console.error(`[RAINDROP_MCP] [${requestId}] bookmark_create called with URL: ${url}, Collection: ${collectionId}`);
+                    
+                    // Helper to canonicalize URL for reliable comparison (ignores http/https, www., trailing slashes)
+                    function canonical(urlStr: string) {
+                        try {
+                            const u = new URL(urlStr);
+                            let host = u.hostname.replace(/^www\./, "");
+                            let path = u.pathname.replace(/\/+$/, ""); // remove trailing slashes
+                            return `${host}${path}${u.search}`;
+                        } catch {
+                            return urlStr.replace(/https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+                        }
+                    }
+
+                    const canonicalIncoming = canonical(url);
+                    console.error(`[RAINDROP_MCP] [${requestId}] Canonical URL: ${canonicalIncoming}`);
+
+                    console.error(`[RAINDROP_MCP] [${requestId}] Starting duplicate check...`);
                     const existingSearch = await raindropService.searchRaindrops({
                         search: url,
                         collection: collectionId,
@@ -786,8 +800,12 @@ export class RaindropMCPService {
                         page: 0
                     });
 
-                    if (existingSearch.items.length > 0 && existingSearch.items[0].link === url) {
-                        const bookmark = existingSearch.items[0];
+                    console.error(`[RAINDROP_MCP] [${requestId}] Duplicate check returned ${existingSearch.items.length} items`);
+                    const duplicate = existingSearch.items.find(b => canonical(b.link) === canonicalIncoming);
+
+                    if (duplicate) {
+                        console.error(`[RAINDROP_MCP] [${requestId}] DUPLICATE FOUND - returning existing bookmark ID: ${duplicate._id}`);
+                        const bookmark = duplicate;
                         return {
                             content: [{
                                 type: "resource",
@@ -810,13 +828,16 @@ export class RaindropMCPService {
                         };
                     }
 
+                    console.error(`[RAINDROP_MCP] [${requestId}] NO DUPLICATE FOUND - creating new bookmark...`);
                     const bookmarkData = {
                         link: url,
                         excerpt: description,
                         ...data
                     };
 
+                    console.error(`[RAINDROP_MCP] [${requestId}] Calling raindropService.createBookmark...`);
                     const bookmark = await raindropService.createBookmark(collectionId, bookmarkData);
+                    console.error(`[RAINDROP_MCP] [${requestId}] Bookmark created successfully with ID: ${bookmark._id}`);
                     return {
                         content: [{
                             type: "resource",

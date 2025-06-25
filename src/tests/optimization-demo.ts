@@ -162,7 +162,7 @@ function demonstrateOptimizations() {
     console.log('• Improved maintainability');
 }
 
-if (import.meta.main) {
+if (import.meta.url === `file://${process.argv[1]}`) {
     demonstrateOptimizations();
 }
 

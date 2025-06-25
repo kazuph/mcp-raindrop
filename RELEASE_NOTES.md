@@ -1,4 +1,41 @@
-# Release Notes - v1.5.1
+# Release Notes
+
+## v1.5.5 - Debug Logging Enhancement
+
+### 🐛 **Debugging & Troubleshooting**
+- **Added comprehensive debug logging** for bookmark creation operations
+- **Request tracking** with unique request IDs for better issue diagnosis
+- **Duplicate detection logging** to help troubleshoot bookmark creation issues
+- **API call monitoring** with detailed request/response logging
+
+### 🔧 **Technical Improvements**
+- Enhanced error tracking in `bookmark_create` tool
+- Added stderr logging compliance for MCP servers
+- Improved duplicate check validation with detailed logging
+- Better API interaction monitoring for Raindrop.io service
+
+### 📝 **Log Output Examples**
+```
+[RAINDROP_MCP] [1234567890] bookmark_create called with URL: https://example.com, Collection: 12345
+[RAINDROP_MCP] [1234567890] Canonical URL: example.com/path
+[RAINDROP_MCP] [1234567890] Starting duplicate check...
+[RAINDROP_MCP] [1234567890] Duplicate check returned 0 items
+[RAINDROP_MCP] [1234567890] NO DUPLICATE FOUND - creating new bookmark...
+[RAINDROP_SERVICE] [1234567890] Creating bookmark in collection 12345 with URL: https://example.com
+[RAINDROP_SERVICE] [1234567890] API response received - Bookmark created with ID: 98765
+```
+
+### 🎯 **Use Cases**
+- Troubleshoot duplicate bookmark creation issues
+- Monitor API call frequency and timing
+- Diagnose MCP server communication problems
+- Track bookmark creation workflow
+
+---
+
+# Previous Releases
+
+## v1.5.1 - YAML Resource Consolidation & LLM Optimization
 
 ## 🎯 Major Release: YAML Resource Consolidation & LLM Optimization
 

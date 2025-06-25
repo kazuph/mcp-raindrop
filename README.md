@@ -150,6 +150,58 @@ For Claude Code or other MCP-compatible clients, this will register the Raindrop
 - **Debug:** `bun run debug` or `bun run inspector`
 - **HTTP server:** `bun run start:http`
 
+## Troubleshooting & Debug Logging
+
+### Debug Logging (v1.5.5+)
+
+The MCP server includes comprehensive debug logging to help troubleshoot issues. All debug logs are written to stderr and captured by the MCP client.
+
+#### Log Output Location
+- **Claude Desktop**: Logs are saved to `~/.config/claude-desktop/mcp-server-raindrop.log`
+- **Other MCP clients**: Check your client's documentation for log locations
+
+#### Example Debug Output
+```
+[RAINDROP_MCP] [1234567890] bookmark_create called with URL: https://example.com, Collection: 12345
+[RAINDROP_MCP] [1234567890] Canonical URL: example.com/path
+[RAINDROP_MCP] [1234567890] Starting duplicate check...
+[RAINDROP_MCP] [1234567890] Duplicate check returned 0 items
+[RAINDROP_MCP] [1234567890] NO DUPLICATE FOUND - creating new bookmark...
+[RAINDROP_SERVICE] [1234567890] Creating bookmark in collection 12345 with URL: https://example.com
+[RAINDROP_SERVICE] [1234567890] API response received - Bookmark created with ID: 98765
+```
+
+#### Common Issues
+
+**Duplicate Bookmarks Being Created:**
+- Check the debug logs for duplicate detection process
+- Look for multiple `bookmark_create` calls with the same request parameters
+- Verify that the canonical URL matching is working correctly
+
+**API Connection Issues:**
+- Verify your `RAINDROP_ACCESS_TOKEN` is valid
+- Check for API rate limiting messages in the logs
+- Ensure your network connection is stable
+
+**MCP Communication Problems:**
+- Ensure no output goes to stdout (only stderr for logs)
+- Check that the MCP client is properly configured
+- Verify the server is running in stdio mode
+
+### Log Analysis Tools
+
+Use standard Unix tools to analyze logs:
+```bash
+# Monitor logs in real-time
+tail -f ~/.config/claude-desktop/mcp-server-raindrop.log
+
+# Filter for specific request
+grep "1234567890" ~/.config/claude-desktop/mcp-server-raindrop.log
+
+# Count bookmark creation attempts
+grep "bookmark_create called" ~/.config/claude-desktop/mcp-server-raindrop.log | wc -l
+```
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.
