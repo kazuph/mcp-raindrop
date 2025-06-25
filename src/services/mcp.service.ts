@@ -780,14 +780,15 @@ this.server.resource(
 
     this.server.tool(
       'createBookmark',
-      'Create a new bookmark',
+      'Create a new bookmark. When available, please include the title and cover image to create a complete bookmark entry.',
       {
         link: z.string().url().describe('URL of the bookmark'),
         collectionId: z.number().describe('Collection ID'),
-        title: z.string().optional().describe('Title of the bookmark'),
+        title: z.string().optional().describe('Title of the bookmark. Please include whenever the title is available (e.g., from web page title, tab title, etc.)'),
         excerpt: z.string().optional().describe('Short description'),
         tags: z.array(z.string()).optional().describe('List of tags'),
-        important: z.boolean().optional().describe('Mark as important')
+        important: z.boolean().optional().describe('Mark as important'),
+        cover: z.string().url().optional().describe('Cover image URL. Please include whenever an image URL is available (e.g., from Open Graph image, thumbnail, etc.)')
       },
       async ({ collectionId, ...data }) => {
         try {
