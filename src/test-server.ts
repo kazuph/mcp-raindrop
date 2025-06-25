@@ -4,7 +4,7 @@
  * Tests that the optimized MCP server is working and has the expected number of tools
  */
 
-import { createOptimizedRaindropServer } from './services/mcp-optimized.service.js';
+import { createRaindropServer } from './services/mcp.service.js';
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
 async function testServer() {
@@ -13,7 +13,7 @@ async function testServer() {
 
     try {
         // Create server instance
-        const { server, cleanup } = createOptimizedRaindropServer();
+        const { server, cleanup } = createRaindropServer();
 
         console.log('✅ Server instance created successfully');
         console.log('📋 Server: raindrop-mcp-optimized v2.0.0');

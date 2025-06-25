@@ -1,7 +1,7 @@
 import express from "express";
 import { randomUUID } from "node:crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { createOptimizedRaindropServer } from './services/mcp-optimized.service.js';
+import { createRaindropServer } from './services/mcp.service.js';
 import { config } from 'dotenv';
 
 config(); // Load .env file
@@ -133,7 +133,7 @@ app.all('/mcp', async (req, res) => {
         } else if (!sessionId && req.method === 'POST' && isInitializeRequest(req.body)) {
             // New initialization request
             console.log('🆕 Creating new optimized Streamable HTTP session');
-            const { server, cleanup } = createOptimizedRaindropServer();
+            const { server, cleanup } = createRaindropServer();
 
             transport = new StreamableHTTPServerTransport({
                 sessionIdGenerator: () => randomUUID(),
