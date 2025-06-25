@@ -1,11 +1,9 @@
-import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import {
+    type LoggingLevel
+} from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import raindropService from './raindrop.service.js';
-import { type Collection, type Bookmark, type Highlight, type SearchParams } from '../types/raindrop.js';
-import {
-    type LoggingLevel,
-    type Tool
-} from "@modelcontextprotocol/sdk/types.js";
 
 /**
  * Raindrop.io MCP Service
@@ -70,11 +68,11 @@ export class RaindropMCPService {
      */
     private generateYAML(obj: any, indent = 0): string {
         const spaces = '  '.repeat(indent);
-        
+
         if (obj === null || obj === undefined) {
             return 'null';
         }
-        
+
         if (typeof obj === 'string') {
             // Escape strings that need quotes
             if (/[:\n\r"'\[\]{}]/.test(obj) || obj.trim() !== obj) {
@@ -82,20 +80,20 @@ export class RaindropMCPService {
             }
             return obj;
         }
-        
+
         if (typeof obj === 'number' || typeof obj === 'boolean') {
             return String(obj);
         }
-        
+
         if (Array.isArray(obj)) {
             if (obj.length === 0) return '[]';
             return obj.map(item => `\n${spaces}- ${this.generateYAML(item, indent + 1).replace(/\n/g, `\n${spaces}  `)}`).join('');
         }
-        
+
         if (typeof obj === 'object') {
             const entries = Object.entries(obj);
             if (entries.length === 0) return '{}';
-            
+
             return entries.map(([key, value]) => {
                 const yamlValue = this.generateYAML(value, indent + 1);
                 if (yamlValue.includes('\n')) {
@@ -104,7 +102,7 @@ export class RaindropMCPService {
                 return `\n${spaces}${key}: ${yamlValue}`;
             }).join('');
         }
-        
+
         return String(obj);
     }
 
@@ -162,16 +160,16 @@ export class RaindropMCPService {
             "raindrop://bookmarks/recent.yaml",
             async (uri) => {
                 const [result, collections] = await Promise.all([
-                    raindropService.getBookmarks({ 
-                        perPage: 30, 
-                        sort: '-created' 
+                    raindropService.getBookmarks({
+                        perPage: 30,
+                        sort: '-created'
                     }),
                     raindropService.getCollections()
                 ]);
-                
+
                 // Create collection lookup map
                 const collectionMap = new Map(collections.map(c => [c._id, c.title]));
-                
+
                 const yaml = this.generateYAML({
                     metadata: {
                         total: result.items.length,
@@ -206,14 +204,14 @@ export class RaindropMCPService {
 
         // Unread Bookmarks YAML Resource - Auto-detect and load unread collection
         this.server.resource(
-            "unread-bookmarks-yaml", 
+            "unread-bookmarks-yaml",
             "raindrop://bookmarks/unread.yaml",
             async (uri) => {
                 try {
                     // First, find the unread collection
                     const collections = await raindropService.getCollections();
-                    const unreadCollection = collections.find(c => 
-                        c.title.toLowerCase().includes('unread') || 
+                    const unreadCollection = collections.find(c =>
+                        c.title.toLowerCase().includes('unread') ||
                         c.title.toLowerCase().includes('未読') ||
                         c.title.toLowerCase().includes('アンリード')
                     );
@@ -227,7 +225,7 @@ export class RaindropMCPService {
                             },
                             bookmarks: []
                         });
-                        
+
                         return {
                             contents: [{
                                 uri: "raindrop://bookmarks/unread.yaml",
@@ -238,12 +236,12 @@ export class RaindropMCPService {
                     }
 
                     // Get bookmarks from the unread collection
-                    const result = await raindropService.getBookmarks({ 
+                    const result = await raindropService.getBookmarks({
                         collection: unreadCollection._id,
-                        perPage: 30, 
-                        sort: '-created' 
+                        perPage: 30,
+                        sort: '-created'
                     });
-                    
+
                     const yaml = this.generateYAML({
                         metadata: {
                             total: result.items.length,
@@ -282,7 +280,7 @@ export class RaindropMCPService {
                         },
                         bookmarks: []
                     });
-                    
+
                     return {
                         contents: [{
                             uri: "raindrop://bookmarks/unread.yaml",
@@ -301,7 +299,7 @@ export class RaindropMCPService {
             async (uri) => {
                 try {
                     const highlights = await raindropService.getAllHighlightsByPage(0, 50);
-                    
+
                     const yaml = this.generateYAML({
                         metadata: {
                             total: highlights.length,
@@ -340,7 +338,7 @@ export class RaindropMCPService {
                         },
                         highlights: []
                     });
-                    
+
                     return {
                         contents: [{
                             uri: "raindrop://highlights/all.yaml",
@@ -471,8 +469,8 @@ export class RaindropMCPService {
                 try {
                     const collections = await raindropService.getCollections();
                     const searchTerm = name.toLowerCase();
-                    
-                    const matches = collections.filter(collection => 
+
+                    const matches = collections.filter(collection =>
                         collection.title.toLowerCase().includes(searchTerm) ||
                         (searchTerm === 'archive' && collection.title.toLowerCase().includes('archive')) ||
                         (searchTerm === 'アーカイブ' && collection.title.toLowerCase().includes('archive')) ||
@@ -485,7 +483,7 @@ export class RaindropMCPService {
                             content: [{
                                 type: "text",
                                 text: `❌ No collections found matching "${name}"\n\n📋 Available collections:\n` +
-                                      collections.map(c => `• ${c.title} (ID: ${c._id})`).join('\n'),
+                                    collections.map(c => `• ${c.title} (ID: ${c._id})`).join('\n'),
                                 metadata: {
                                     searchTerm: name,
                                     found: false,
@@ -500,8 +498,8 @@ export class RaindropMCPService {
                         content: [{
                             type: "text",
                             text: `✅ Found ${matches.length} collection(s) matching "${name}":\n\n` +
-                                  matches.map(c => `📁 ${c.title} (ID: ${c._id}, ${c.count} items)`).join('\n') +
-                                  (matches.length === 1 ? `\n\n💡 Use collection ID ${matches[0]._id} for operations.` : ''),
+                                matches.map(c => `📁 ${c.title} (ID: ${c._id}, ${c.count} items)`).join('\n') +
+                                (matches.length === 1 ? `\n\n💡 Use collection ID ${matches[0]._id} for operations.` : ''),
                             metadata: {
                                 searchTerm: name,
                                 found: true,
@@ -751,7 +749,7 @@ export class RaindropMCPService {
                         try {
                             const recent = await raindropService.getBookmarks({ perPage: 5, sort: '-created' });
                             const suggestions = recent.items.map(b => `${b._id}: ${b.title}`).join('\n');
-                            
+
                             throw new Error(`❌ Bookmark ID ${id} not found.\n\n💡 Here are your 5 most recent bookmarks:\n${suggestions}\n\n🔍 Try using bookmark_search to find the bookmark you're looking for.`);
                         } catch {
                             throw new Error(`❌ Bookmark ID ${id} not found. Use bookmark_search to find available bookmarks.`);
@@ -775,6 +773,43 @@ export class RaindropMCPService {
             },
             async ({ url, collectionId, description, ...data }) => {
                 try {
+                    // 🛡️ Duplicate protection – check if the bookmark already exists in the target collection
+                    // Raindrop sometimes allows identical URLs to be saved multiple times. However, in our
+                    // use-case duplicated calls from the MCP layer were registering two bookmarks. To make the
+                    // operation idempotent and eliminate the side-effect of accidental double invocation we
+                    // proactively look up an existing bookmark with the same URL in the same collection before
+                    // attempting to create a new one.
+                    const existingSearch = await raindropService.searchRaindrops({
+                        search: url,
+                        collection: collectionId,
+                        perPage: 1,
+                        page: 0
+                    });
+
+                    if (existingSearch.items.length > 0 && existingSearch.items[0].link === url) {
+                        const bookmark = existingSearch.items[0];
+                        return {
+                            content: [{
+                                type: "resource",
+                                resource: {
+                                    text: bookmark.title || 'Untitled Bookmark (already exists)',
+                                    uri: bookmark.link,
+                                    metadata: {
+                                        id: bookmark._id,
+                                        title: bookmark.title,
+                                        link: bookmark.link,
+                                        excerpt: bookmark.excerpt,
+                                        tags: bookmark.tags,
+                                        collectionId: bookmark.collection?.$id,
+                                        created: bookmark.created,
+                                        duplicate: true,
+                                        category: RaindropMCPService.CATEGORIES.BOOKMARKS
+                                    }
+                                }
+                            }]
+                        };
+                    }
+
                     const bookmarkData = {
                         link: url,
                         excerpt: description,
@@ -815,20 +850,20 @@ export class RaindropMCPService {
             },
             async ({ count = 10 }) => {
                 try {
-                    const result = await raindropService.getBookmarks({ 
-                        perPage: count, 
-                        sort: '-created' 
+                    const result = await raindropService.getBookmarks({
+                        perPage: count,
+                        sort: '-created'
                     });
-                    
+
                     return {
                         content: [{
                             type: "text",
-                            text: `🕒 Your ${result.items.length} most recent bookmarks:\n\n` + 
-                                  result.items.map((bookmark, index) => 
-                                      `${index + 1}. 📚 [ID: ${bookmark._id}] ${bookmark.title || 'Untitled'}\n` +
-                                      `   🔗 ${bookmark.link}\n` +
-                                      `   📅 ${bookmark.created}\n`
-                                  ).join('\n'),
+                            text: `🕒 Your ${result.items.length} most recent bookmarks:\n\n` +
+                                result.items.map((bookmark, index) =>
+                                    `${index + 1}. 📚 [ID: ${bookmark._id}] ${bookmark.title || 'Untitled'}\n` +
+                                    `   🔗 ${bookmark.link}\n` +
+                                    `   📅 ${bookmark.created}\n`
+                                ).join('\n'),
                             metadata: {
                                 total: result.items.length,
                                 category: RaindropMCPService.CATEGORIES.BOOKMARKS

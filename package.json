@@ -1,6 +1,6 @@
 {
     "name": "@kazuph/mcp-raindrop",
-    "version": "1.5.3",
+    "version": "1.5.4",
     "description": "MCP Server for Raindrop.io",
     "main": "build/src/index.js",
     "module": "build/src/index.js",
