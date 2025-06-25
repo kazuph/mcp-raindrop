@@ -47,6 +47,7 @@
         "debug:optimized": "bun run inspector:optimized",
         "clean": "rm -rf build",
         "prebuild": "bun run clean",
+        "prepublishOnly": "bun run build",
         "mcp": "bun run src/index.js",
         "bump:patch": "npm version patch",
         "bump:minor": "npm version minor",
