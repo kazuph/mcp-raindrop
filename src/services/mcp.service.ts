@@ -3,7 +3,6 @@ import {
     type LoggingLevel
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { type Bookmark } from '../types/raindrop.js';
 import raindropService from './raindrop.service.js';
 
 /**
@@ -44,7 +43,7 @@ export class RaindropMCPService {
         IMPORT_EXPORT: 'Import/Export'
     } as const;
 
-    
+
     // Global request deduplication for all tool calls
     private static requestDeduplicationMap: Map<string, Promise<any>> = new Map();
     private static REQUEST_TIMEOUT = 1000; // 1 second timeout for duplicate requests
@@ -80,7 +79,7 @@ export class RaindropMCPService {
 
         const promise = asyncFunction();
         RaindropMCPService.requestDeduplicationMap.set(key, promise);
-        
+
         // Auto-cleanup after timeout
         setTimeout(() => {
             RaindropMCPService.requestDeduplicationMap.delete(key);
@@ -398,7 +397,7 @@ export class RaindropMCPService {
             console.error(`[RAINDROP_MCP] [${Date.now()}] WARNING: Tools already initialized, skipping duplicate initialization`);
             return;
         }
-        
+
         this.initializeCollectionTools();
         this.initializeBookmarkTools();
         this.initializeTagTools();
@@ -817,7 +816,7 @@ export class RaindropMCPService {
             },
             async ({ url, collectionId, description, ...data }) => {
                 const requestKey = `bookmark_create:${collectionId}:${url}`;
-                
+
                 return RaindropMCPService.deduplicateRequest(requestKey, async () => {
                     try {
                         console.error(`[RAINDROP_MCP] [${Date.now()}] bookmark_create called with URL: ${url}, Collection: ${collectionId}`);
@@ -877,10 +876,10 @@ export class RaindropMCPService {
                             excerpt: description,
                             ...data
                         };
-                        
+
                         const bookmark = await raindropService.createBookmark(collectionId, bookmarkData);
                         console.error(`[RAINDROP_MCP] [${Date.now()}] Bookmark created successfully with ID: ${bookmark._id}`);
-                        
+
                         return {
                             content: [{
                                 type: "resource",
