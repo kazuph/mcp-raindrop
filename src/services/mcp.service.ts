@@ -42,6 +42,9 @@ export class RaindropMCPService {
         IMPORT_EXPORT: 'Import/Export'
     } as const;
 
+    // Map for debouncing concurrent duplicate bookmark_create requests
+    private static bookmarkCreationLocks: Map<string, Promise<Bookmark>> = new Map();
+
     constructor() {
         this.server = new McpServer({
             name: 'raindrop-mcp',
@@ -776,7 +779,7 @@ export class RaindropMCPService {
                     // Debug: Log bookmark creation request
                     const requestId = Date.now().toString();
                     console.error(`[RAINDROP_MCP] [${requestId}] bookmark_create called with URL: ${url}, Collection: ${collectionId}`);
-                    
+
                     // Helper to canonicalize URL for reliable comparison (ignores http/https, www., trailing slashes)
                     function canonical(urlStr: string) {
                         try {
