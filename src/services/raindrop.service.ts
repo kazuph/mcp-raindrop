@@ -147,9 +147,15 @@ class RaindropService {
     ids: number[], 
     updates: { tags?: string[]; collection?: number; important?: boolean; broken?: boolean; }
   ): Promise<{ result: boolean }> {
+    // Transform collection ID to the format expected by Raindrop.io API
+    const apiUpdates: Record<string, any> = { ...updates };
+    if (updates.collection !== undefined) {
+      apiUpdates.collection = { $id: updates.collection };
+    }
+
     const { data } = await this.api.put('/raindrops/0', {
       ids,
-      ...updates
+      ...apiUpdates
     });
     return { result: data.result };
   }

@@ -125,296 +125,212 @@ This project includes a `smithery.yaml` configuration file for [Smithery](https:
 
 ### Exposed Tools
 
-#### `getCollections`
-- **Description**: Retrieves all collections from Raindrop.io.
-- **Parameters**: None
+#### `collection_list`
+- **Description**: List all collections or child collections of a parent. Use this to understand the user's collection structure before performing other operations.
+- **Parameters**:
+  - `parentId` (number, optional): Parent collection ID to list children. Omit to list root collections.
 - **Response**: Returns a list of collections with their details.
 
-#### `getCollection`
-- **Description**: Retrieves a specific collection by ID.
+#### `collection_get`
+- **Description**: Get detailed information about a specific collection by ID. Use this when you need full details about a collection.
 - **Parameters**:
-  - `id` (number): ID of the collection to retrieve.
+  - `id` (number): Collection ID (e.g., 12345).
 - **Response**: Returns the collection details.
 
-#### `createCollection`
-- **Description**: Creates a new collection.
+#### `collection_create`
+- **Description**: Create a new collection (folder) for organizing bookmarks. Collections help organize bookmarks by topic, project, or any categorization system.
 - **Parameters**:
-  - `title` (string): Title of the collection.
-  - `isPublic` (boolean, optional): Whether the collection is public.
+  - `title` (string): Collection name (e.g., "Web Development Resources", "Research Papers").
+  - `isPublic` (boolean, optional): Make collection publicly viewable (default: false).
 - **Response**: Returns the created collection details.
 
-#### `getBookmarks`
-- **Description**: Retrieves bookmarks with optional filtering.
+#### `collection_find`
+- **Description**: Find collection ID by name (e.g., "archive", "unread", "アーカイブ"). This helps identify target collections for moving bookmarks.
 - **Parameters**:
-  - `collection` (number, optional): ID of the collection to filter bookmarks.
-  - `search` (string, optional): Search query for filtering bookmarks.
-  - `tags` (string[], optional): Tags to filter bookmarks.
-  - `page` (number, optional): Page number for pagination.
-  - `perPage` (number, optional): Items per page (max 50).
-  - `sort` (string, optional): Sort order for results.
-- **Response**: Returns a list of bookmarks matching the criteria.
+  - `name` (string): Collection name to search for (case-insensitive, supports partial matches).
+- **Response**: Returns matching collections with IDs and metadata.
 
-#### `searchBookmarks`
-- **Description**: Search bookmarks with advanced filters.
+#### `bookmark_search`
+- **Description**: Search bookmarks with advanced filtering. This is the primary tool for finding bookmarks. Supports full-text search, tag filtering, date ranges, and collection scoping.
 - **Parameters**:
-  - `search` (string, optional): Search query.
-  - `collection` (number, optional): Collection ID.
-  - `tags` (string[], optional): Filter by tags.
-  - `createdStart` (string, optional): Created after date (ISO format).
-  - `createdEnd` (string, optional): Created before date (ISO format).
-  - `important` (boolean, optional): Only important bookmarks.
-  - `media` (string, optional): Media type filter.
-  - `page` (number, optional): Page number.
-  - `perPage` (number, optional): Items per page (max 50).
-  - `sort` (string, optional): Sort order.
-- **Response**: Returns a list of bookmarks matching the advanced criteria.
+  - `query` (string, optional): Search query (searches title, description, content, and URL).
+  - `collection` (number, optional): Limit search to specific collection ID.
+  - `tags` (string[], optional): Filter by tags (e.g., ["javascript", "tutorial"]).
+  - `createdStart` (string, optional): Created after date (ISO format: YYYY-MM-DD).
+  - `createdEnd` (string, optional): Created before date (ISO format: YYYY-MM-DD).
+  - `important` (boolean, optional): Only show important/starred bookmarks.
+  - `media` (string, optional): Filter by media type ('image', 'video', 'document', 'audio').
+  - `page` (number, optional): Page number for pagination (starts at 0).
+  - `perPage` (number, optional): Results per page (1-50).
+  - `sort` (string, optional): Sort order (prefix with - for descending).
+- **Response**: Returns a list of bookmarks matching the criteria with pagination metadata.
 
-#### `getTags`
-- **Description**: Retrieves tags from a specific collection or all collections.
+#### `tag_list`
+- **Description**: List all tags or tags from a specific collection. Use this to understand the current tag structure before performing tag operations.
 - **Parameters**:
-  - `collectionId` (number, optional): ID of the collection to filter tags.
+  - `collectionId` (number, optional): Collection ID to filter tags (omit for all tags).
 - **Response**: Returns a list of tags with usage count.
 
-#### `renameTag`
-- **Description**: Renames a tag.
+#### `tag_manage`
+- **Description**: Perform tag management operations like renaming, merging, or deleting tags. Use this to maintain a clean tag structure.
 - **Parameters**:
-  - `collectionId` (number, optional): ID of the collection to restrict renaming.
-  - `oldName` (string): Current name of the tag.
-  - `newName` (string): New name for the tag.
-- **Response**: Returns confirmation of tag rename.
+  - `operation` (string): Tag management operation ('rename', 'merge', 'delete', 'delete_multiple').
+  - `collectionId` (number, optional): Collection ID to scope operation (omit for all collections).
+  - `oldName` (string, optional): Current tag name (required for rename).
+  - `newName` (string, optional): New tag name (required for rename).
+  - `sourceTags` (string[], optional): Tags to merge from (required for merge).
+  - `destinationTag` (string, optional): Tag to merge into (required for merge).
+  - `tagName` (string, optional): Tag to delete (required for single delete).
+  - `tagNames` (string[], optional): Tags to delete (required for multiple delete).
+- **Response**: Returns confirmation of tag operation.
 
-#### `mergeTags`
-- **Description**: Merges multiple tags into one.
+#### `highlight_list`
+- **Description**: List highlights from all bookmarks, a specific bookmark, or a collection. Use this to find and review saved text highlights.
 - **Parameters**:
-  - `collectionId` (number, optional): ID of the collection to restrict merging.
-  - `sourceTags` (string[]): List of tags to merge.
-  - `destinationTag` (string): New name for the merged tags.
-- **Response**: Returns confirmation of tag merge.
+  - `scope` (string): Scope of highlights to retrieve ('all', 'bookmark', 'collection').
+  - `bookmarkId` (number, optional): Bookmark ID (required when scope=bookmark).
+  - `collectionId` (number, optional): Collection ID (required when scope=collection).
+  - `page` (number, optional): Page number for pagination (starts at 0).
+  - `perPage` (number, optional): Results per page (1-50).
+- **Response**: Returns a list of highlights with text, color, notes, timestamps, and associated raindrop metadata.
 
-#### `deleteTags`
-- **Description**: Deletes specified tags.
+#### `collection_update`
+- **Description**: Update collection properties like title, visibility, or view settings. Use this to rename collections or change their configuration.
 - **Parameters**:
-  - `collectionId` (number, optional): ID of the collection to restrict deletion.
-  - `tags` (string[]): List of tags to delete.
-- **Response**: Returns confirmation of tag deletion.
-
-#### `deleteTag`
-- **Description**: Remove a tag from all bookmarks or in a specific collection.
-- **Parameters**:
-  - `tag` (string): Tag to delete.
-  - `collectionId` (number, optional): Collection ID to restrict deletion.
-- **Response**: Returns confirmation of tag deletion.
-
-#### `getAllTags`
-- **Description**: Retrieves all tags across all collections.
-- **Parameters**: None
-- **Response**: Returns a list of all tags with usage count.
-
-#### `getHighlights`
-- **Description**: Retrieves highlights for a specific raindrop.
-- **Parameters**:
-  - `raindropId` (number): ID of the raindrop to retrieve highlights for.
-- **Response**: Returns a list of highlights with text, color, notes, timestamps, and additional metadata fields (title, tags, link, domain, and excerpt).
-
-#### `getAllHighlights`
-- **Description**: Retrieves all highlights across all raindrops with pagination support.
-- **Parameters**: 
-  - `page` (number, optional): Page number for pagination.
-  - `perPage` (number, optional): Items per page (default 50).
-- **Response**: Returns a list of all highlights with text, color, notes, timestamps, and additional metadata (title, tags, link, domain, excerpt, and last update).
-
-#### `getHighlightsByCollection`
-- **Description**: Retrieves all highlights for bookmarks in a specific collection with pagination support.
-- **Parameters**:
-  - `collectionId` (number): ID of the collection to retrieve highlights from.
-  - `page` (number, optional): Page number for pagination.
-  - `perPage` (number, optional): Items per page (default 50).
-- **Response**: Returns a list of highlights with associated raindrop IDs and additional metadata (title, tags, link, domain, excerpt, and last update).
-
-#### `updateCollection`
-- **Description**: Update an existing collection.
-- **Parameters**:
-  - `id` (number): Collection ID.
-  - `title` (string, optional): New title.
-  - `isPublic` (boolean, optional): Whether the collection is public.
-  - `view` (string, optional): View type ('list', 'simple', 'grid', 'masonry').
-  - `sort` (string, optional): Sort order ('title', '-created').
+  - `id` (number): Collection ID to update.
+  - `title` (string, optional): New collection title.
+  - `isPublic` (boolean, optional): Change public visibility.
+  - `view` (string, optional): Collection view type in Raindrop.io interface ('list', 'simple', 'grid', 'masonry').
+  - `sort` (string, optional): Default sort order ('title', '-created').
 - **Response**: Returns the updated collection details.
 
-#### `deleteCollection`
-- **Description**: Delete a collection.
+#### `collection_delete`
+- **Description**: Delete a collection permanently. WARNING: This action cannot be undone. Bookmarks in the collection will be moved to Unsorted.
 - **Parameters**:
-  - `id` (number): Collection ID.
+  - `id` (number): Collection ID to delete.
 - **Response**: Returns confirmation of collection deletion.
 
-#### `shareCollection`
-- **Description**: Share a collection with others.
+#### `collection_share`
+- **Description**: Share a collection with specific users or generate a public sharing link. Useful for collaboration or sharing curated bookmark lists.
 - **Parameters**:
-  - `id` (number): Collection ID.
+  - `id` (number): Collection ID to share.
   - `level` (string): Access level ('view', 'edit', 'remove').
-  - `emails` (string[], optional): Email addresses to share with.
+  - `emails` (string[], optional): Email addresses to share with (for specific user sharing).
 - **Response**: Returns sharing details including public link.
 
-#### `reorderCollections`
-- **Description**: Reorders collections based on a sort parameter.
+#### `collection_maintenance`
+- **Description**: Perform maintenance operations on collections. Use this to clean up your collection structure.
 - **Parameters**:
-  - `sort` (string): Sort order ('title', '-title', or '-count').
-- **Response**: Returns confirmation of collection reordering.
+  - `operation` (string): Maintenance operation to perform ('merge', 'remove_empty', 'empty_trash').
+  - `targetId` (number, optional): Target collection ID (required for merge operation).
+  - `sourceIds` (number[], optional): Source collection IDs to merge (required for merge operation).
+- **Response**: Returns confirmation of maintenance operation.
 
-#### `toggleCollectionsExpansion`
-- **Description**: Expands or collapses all collections.
-- **Parameters**:
-  - `expand` (boolean): True to expand all collections, false to collapse.
-- **Response**: Returns confirmation of collection expansion state change.
-
-#### `mergeCollections`
-- **Description**: Merges multiple collections into one target collection.
-- **Parameters**:
-  - `targetId` (number): ID of the target collection.
-  - `sourceIds` (number[]): List of collection IDs to merge.
-- **Response**: Returns confirmation of collection merge.
-
-#### `removeEmptyCollections`
-- **Description**: Removes all empty collections.
-- **Parameters**: None
-- **Response**: Returns the number of empty collections removed.
-
-#### `emptyTrash`
-- **Description**: Empties the trash collection.
-- **Parameters**: None
-- **Response**: Returns confirmation of trash emptying.
-
-#### `getUserInfo`
-- **Description**: Get user information.
+#### `user_profile`
+- **Description**: Get user account information including name, email, subscription status, and registration date.
 - **Parameters**: None
 - **Response**: Returns user details including email, name, and subscription status.
 
-#### `getUserStats`
-- **Description**: Get user statistics.
+#### `user_statistics`
+- **Description**: Get user account statistics or statistics for a specific collection. Includes bookmark counts, collection counts, and other usage metrics.
 - **Parameters**:
-  - `collectionId` (number, optional): Collection ID for specific collection stats.
+  - `collectionId` (number, optional): Collection ID for specific collection statistics (omit for account-wide stats).
 - **Response**: Returns statistics about user's raindrops and collections.
 
-#### `getImportStatus`
-- **Description**: Check the status of an ongoing import.
+#### `import_status`
+- **Description**: Check the status of an ongoing import operation. Use this to monitor import progress.
 - **Parameters**: None
 - **Response**: Returns the current import status, progress, and results.
 
-#### `getExportStatus`
-- **Description**: Check the status of an ongoing export.
+#### `export_status`
+- **Description**: Check the status of an ongoing export operation and get download link when ready.
 - **Parameters**: None
 - **Response**: Returns the current export status, progress, and download URL if ready.
 
-#### `exportBookmarks`
-- **Description**: Export bookmarks in various formats.
+#### `export_bookmarks`
+- **Description**: Export bookmarks in various formats for backup or migration. Supports CSV, HTML, and PDF formats with filtering options.
 - **Parameters**:
   - `format` (string): Export format ('csv', 'html', 'pdf').
-  - `collectionId` (number, optional): Export specific collection.
-  - `broken` (boolean, optional): Include broken links.
-  - `duplicates` (boolean, optional): Include duplicates.
+  - `collectionId` (number, optional): Export specific collection only (omit for all bookmarks).
+  - `includeBroken` (boolean, optional): Include bookmarks with broken/dead links.
+  - `includeDuplicates` (boolean, optional): Include duplicate bookmarks.
 - **Response**: Returns confirmation with status URL.
 
 
-#### `getBookmark`
-- **Description**: Get a specific bookmark by ID.
+#### `bookmark_get`
+- **Description**: Get detailed information about a specific bookmark by ID. Use this when you need full bookmark details.
 - **Parameters**:
   - `id` (number): Bookmark ID.
 - **Response**: Returns the bookmark details.
 
-#### `createBookmark`
-- **Description**: Create a new bookmark.
+#### `bookmark_create`
+- **Description**: Add a new bookmark to a collection. The system will automatically extract title, description, and other metadata from the URL.
 - **Parameters**:
-  - `link` (string): URL of the bookmark.
-  - `collectionId` (number): Collection ID.
-  - `title` (string, optional): Title of the bookmark.
-  - `excerpt` (string, optional): Short description.
-  - `tags` (string[], optional): List of tags.
-  - `important` (boolean, optional): Mark as important.
+  - `url` (string): URL to bookmark (e.g., "https://example.com/article").
+  - `collectionId` (number): Collection ID where bookmark will be saved.
+  - `title` (string, optional): Custom title (if not provided, will be extracted from URL).
+  - `description` (string, optional): Custom description or notes.
+  - `tags` (string[], optional): Tags for organization (e.g., ["javascript", "tutorial"]).
+  - `important` (boolean, optional): Mark as important/starred.
 - **Response**: Returns the created bookmark details.
 
-#### `updateBookmark`
-- **Description**: Update an existing bookmark.
+#### `bookmark_update`
+- **Description**: Update bookmark properties like title, description, tags, or move to different collection. Use this to modify existing bookmarks.
 - **Parameters**:
-  - `id` (number): Bookmark ID.
-  - `title` (string, optional): Title of the bookmark.
-  - `excerpt` (string, optional): Short excerpt or description.
-  - `tags` (string[], optional): List of tags.
-  - `collectionId` (number, optional): Collection ID to move the bookmark to.
-  - `important` (boolean, optional): Mark as important.
+  - `id` (number): Bookmark ID to update.
+  - `title` (string, optional): New title.
+  - `description` (string, optional): New description or notes.
+  - `tags` (string[], optional): New tags (replaces existing tags).
+  - `collectionId` (number, optional): Move to different collection.
+  - `important` (boolean, optional): Change important/starred status.
 - **Response**: Returns the updated bookmark details.
 
-#### `deleteBookmark`
-- **Description**: Delete a bookmark.
+#### `bookmark_recent`
+- **Description**: Get your most recent bookmarks. This is useful to quickly see your latest saved items and their IDs for further operations.
 - **Parameters**:
-  - `id` (number): Bookmark ID.
-  - `permanent` (boolean, optional): Permanently delete (skip trash).
-- **Response**: Returns confirmation of bookmark deletion.
+  - `count` (number, optional): Number of recent bookmarks to retrieve (1-20, default: 10).
+- **Response**: Returns list of recent bookmarks with metadata.
 
-#### `batchUpdateBookmarks`
-- **Description**: Update multiple bookmarks at once.
+#### `bookmark_reminders`
+- **Description**: Manage reminders for bookmarks. Set or remove reminder notifications for important bookmarks you want to revisit.
 - **Parameters**:
-  - `ids` (number[]): List of bookmark IDs.
-  - `tags` (string[], optional): Tags to apply to all bookmarks.
-  - `collectionId` (number, optional): Collection ID to move bookmarks to.
-  - `important` (boolean, optional): Mark as important.
-- **Response**: Returns confirmation of batch update.
+  - `operation` (string): Reminder operation ('set', 'remove').
+  - `bookmarkId` (number): Bookmark ID.
+  - `date` (string, optional): Reminder date in ISO format (required for set operation).
+  - `note` (string, optional): Optional reminder note.
+- **Response**: Returns confirmation of reminder operation.
 
-#### `bulkMoveBookmarks`
-- **Description**: Move multiple bookmarks to another collection.
+#### `bookmark_batch_operations`
+- **Description**: Perform operations on multiple bookmarks at once. Efficient for bulk updates, moves, tagging, or deletions.
 - **Parameters**:
-  - `ids` (number[]): List of bookmark IDs to move.
-  - `collectionId` (number): Target collection ID.
-- **Response**: Returns confirmation of bulk move operation.
+  - `operation` (string): Batch operation type ('update', 'move', 'tag_add', 'tag_remove', 'delete', 'delete_permanent').
+  - `bookmarkIds` (number[]): List of bookmark IDs to operate on.
+  - `collectionId` (number, optional): Target collection ID (for move/update operations).
+  - `important` (boolean, optional): Set important status (for update operations).
+  - `tags` (string[], optional): Tags to add/remove (for tag operations).
+- **Response**: Returns confirmation of batch operation with affected bookmark count.
 
-#### `bulkTagBookmarks`
-- **Description**: Add or remove tags from multiple bookmarks.
+#### `highlight_create`
+- **Description**: Create a new text highlight for a bookmark. Use this to save important text passages from articles or documents.
 - **Parameters**:
-  - `ids` (number[]): List of bookmark IDs.
-  - `tags` (string[]): Tags to apply.
-  - `operation` (string): Whether to 'add' or 'remove' the specified tags.
-- **Response**: Returns confirmation of bulk tag operation.
-
-#### `batchDeleteBookmarks`
-- **Description**: Delete multiple bookmarks at once.
-- **Parameters**:
-  - `ids` (number[]): List of bookmark IDs to delete.
-  - `permanent` (boolean, optional): Permanently delete (skip trash).
-- **Response**: Returns confirmation of batch deletion.
-
-#### `createHighlight`
-- **Description**: Create a new highlight for a bookmark.
-- **Parameters**:
-  - `raindropId` (number): Bookmark ID.
-  - `text` (string): Highlighted text.
-  - `note` (string, optional): Additional note for the highlight.
-  - `color` (string, optional): Color for the highlight (e.g., "yellow", "#FFFF00").
+  - `bookmarkId` (number): Bookmark ID to add highlight to.
+  - `text` (string): Text to highlight (the actual content to be highlighted).
+  - `note` (string, optional): Optional note or comment about this highlight.
+  - `color` (string, optional): Highlight color (e.g., "yellow", "blue", "#FFFF00").
 - **Response**: Returns the created highlight details.
 
-#### `updateHighlight`
-- **Description**: Update an existing highlight.
+#### `highlight_update`
+- **Description**: Update an existing highlight's text, note, or color. Use this to modify saved highlights.
 - **Parameters**:
-  - `id` (number): Highlight ID.
+  - `id` (number): Highlight ID to update.
   - `text` (string, optional): New highlighted text.
-  - `note` (string, optional): New note.
-  - `color` (string, optional): New color.
+  - `note` (string, optional): New note or comment.
+  - `color` (string, optional): New highlight color.
 - **Response**: Returns the updated highlight details.
 
-#### `deleteHighlight`
-- **Description**: Delete a highlight.
+#### `highlight_delete`
+- **Description**: Delete a highlight permanently. This action cannot be undone.
 - **Parameters**:
-  - `id` (number): Highlight ID.
+  - `id` (number): Highlight ID to delete.
 - **Response**: Returns confirmation of highlight deletion.
 
-#### `setReminder`
-- **Description**: Sets a reminder for a specific raindrop.
-- **Parameters**:
-  - `raindropId` (number): ID of the raindrop to set the reminder for.
-  - `date` (string): Reminder date in ISO format.
-  - `note` (string, optional): Optional note for the reminder.
-- **Response**: Returns the updated raindrop with the reminder details.
-
-#### `deleteReminder`
-- **Description**: Delete a reminder from a bookmark.
-- **Parameters**:
-  - `raindropId` (number): Bookmark ID.
-- **Response**: Returns confirmation of reminder deletion.
