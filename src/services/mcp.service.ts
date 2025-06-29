@@ -51,7 +51,7 @@ export class RaindropMCPService {
     constructor() {
         this.server = new McpServer({
             name: 'raindrop-mcp',
-            version: '1.7.1',
+            version: '1.7.2',
             description: 'Optimized MCP Server for Raindrop.io with enhanced AI-friendly tool organization and debug logging',
             capabilities: {
                 logging: false // Keep logging off for STDIO compatibility
@@ -908,7 +908,7 @@ export class RaindropMCPService {
 
         this.server.tool(
             'bookmark_recent',
-            'Get your most recent bookmarks. This is useful to quickly see your latest saved items and their IDs for further operations.',
+            'Get your most recent bookmarks from UNSORTED collection only (not all collections). This is useful to quickly see your latest saved items and their IDs for further operations. NOTE: This defaults to unsorted bookmarks only - use bookmark_list_all to get recent bookmarks from all collections.',
             {
                 count: z.number().min(1).max(20).optional().default(10).describe('Number of recent bookmarks to retrieve (1-20, default: 10)')
             },
@@ -1113,7 +1113,7 @@ export class RaindropMCPService {
 
         this.server.tool(
             'bookmark_list_all',
-            'Get all bookmarks from all collections. This is a simplified tool for AI to quickly access the complete bookmark library without needing to specify collection parameters.',
+            'Get all bookmarks from ALL collections (not just unsorted). This is a simplified tool for AI to quickly access the complete bookmark library without needing to specify collection parameters. NOTE: Unlike bookmark_recent which defaults to unsorted only, this tool explicitly retrieves from all collections.',
             {
                 page: z.number().optional().default(0).describe('Page number for pagination (starts at 0)'),
                 perPage: z.number().min(1).max(50).optional().default(25).describe('Results per page (1-50)')
