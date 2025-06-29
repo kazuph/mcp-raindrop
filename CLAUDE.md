@@ -165,6 +165,20 @@ This project includes a `smithery.yaml` configuration file for [Smithery](https:
   - `sort` (string, optional): Sort order (prefix with - for descending).
 - **Response**: Returns a list of bookmarks matching the criteria with pagination metadata.
 
+#### `bookmark_list_all` (NEW in v1.7.0)
+- **Description**: Get all bookmarks from all collections. This is a simplified tool for AI to quickly access the complete bookmark library without needing to specify collection parameters.
+- **Parameters**:
+  - `page` (number, optional): Page number for pagination (starts at 0).
+  - `perPage` (number, optional): Results per page (1-50).
+- **Response**: Returns a list of all bookmarks with metadata indicating source as 'all_bookmarks'.
+
+#### `bookmark_list_unsorted` (NEW in v1.7.0)
+- **Description**: Get unsorted/uncategorized bookmarks. This is a simplified tool for AI to quickly access bookmarks that haven't been organized into specific collections yet.
+- **Parameters**:
+  - `page` (number, optional): Page number for pagination (starts at 0).
+  - `perPage` (number, optional): Results per page (1-50).
+- **Response**: Returns a list of unsorted bookmarks with metadata indicating source as 'unsorted_bookmarks'.
+
 #### `tag_list`
 - **Description**: List all tags or tags from a specific collection. Use this to understand the current tag structure before performing tag operations.
 - **Parameters**:

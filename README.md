@@ -10,6 +10,7 @@ This project provides a Model Context Protocol (MCP) server for interacting with
 
 - **CRUD Operations**: Create, Read, Update, and Delete collections and bookmarks.
 - **Advanced Search**: Filter bookmarks by various criteria like tags, domain, type, creation date, etc.
+- **AI-Friendly Tools**: Simplified `bookmark_list_all` and `bookmark_list_unsorted` tools for easy AI access.
 - **Tag Management**: List, rename, merge, and delete tags.
 - **Highlight Access**: Retrieve text highlights from bookmarks.
 - **Collection Management**: Reorder, expand/collapse, merge, and remove empty collections.
@@ -211,6 +212,13 @@ Contributions are welcome! Please open an issue or submit a pull request.
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 📋 Recent Enhancements
+
+### 🎯 **v1.7.0 - AI-Friendly Bookmark Access Tools**
+- **🤖 New AI Tools**: Added `bookmark_list_all` and `bookmark_list_unsorted` for simplified AI access
+- **📚 Parameter-Free**: No complex parameters needed - perfect for AI agents
+- **🔄 Default Change**: Default collection is now unsorted (-1) instead of all (0)
+- **🐛 Bug Fix**: Fixed collection parameter handling in searchRaindrops and getBookmarks
+- **🧪 Enhanced Testing**: Added comprehensive test coverage for new tools
 
 ### 🎯 **v1.5.1 - YAML Resource Consolidation & LLM Optimization**
 - **✅ 20-File Limit Fixed**: Resolved Claude Code attachment limit error

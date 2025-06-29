@@ -101,13 +101,13 @@ class RaindropService {
 
     // Handle collection parameter
     if (params.collection === undefined && !params.search) {
-      // Use the default collection endpoint if no specific collection or search
-      const { data } = await this.api.get('/raindrops/0', { params: queryParams });
+      // Use the default collection endpoint (unsorted) if no specific collection or search
+      const { data } = await this.api.get('/raindrops/-1', { params: queryParams });
       return data;
     }
     
     // For specific collection or search
-    const endpoint = params.collection !== undefined ? `/raindrops/${params.collection}` : '/raindrops/0';
+    const endpoint = params.collection !== undefined ? `/raindrops/${params.collection}` : '/raindrops/-1';
     const { data } = await this.api.get(endpoint, { params: queryParams });
     return data;
   }
@@ -569,7 +569,11 @@ class RaindropService {
       delete queryParams.createdEnd;
     }
     
-    const { data } = await this.api.get('/raindrops/0', { 
+    // Remove collection from query params since it's used in the endpoint
+    const collectionId = params.collection !== undefined ? params.collection : -1; // Default to unsorted (-1)
+    delete queryParams.collection;
+    
+    const { data } = await this.api.get(`/raindrops/${collectionId}`, { 
       params: queryParams 
     });
     

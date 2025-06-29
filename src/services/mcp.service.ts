@@ -51,7 +51,7 @@ export class RaindropMCPService {
     constructor() {
         this.server = new McpServer({
             name: 'raindrop-mcp',
-            version: '1.6.0',
+            version: '1.7.0',
             description: 'Optimized MCP Server for Raindrop.io with enhanced AI-friendly tool organization and debug logging',
             capabilities: {
                 logging: false // Keep logging off for STDIO compatibility
@@ -1107,6 +1107,106 @@ export class RaindropMCPService {
                     }
                 } catch (error) {
                     throw new Error(`Failed to manage reminder: ${(error as Error).message}`);
+                }
+            }
+        );
+
+        this.server.tool(
+            'bookmark_list_all',
+            'Get all bookmarks from all collections. This is a simplified tool for AI to quickly access the complete bookmark library without needing to specify collection parameters.',
+            {
+                page: z.number().optional().default(0).describe('Page number for pagination (starts at 0)'),
+                perPage: z.number().min(1).max(50).optional().default(25).describe('Results per page (1-50)')
+            },
+            async ({ page, perPage }) => {
+                try {
+                    const result = await raindropService.searchRaindrops({
+                        collection: 0, // All bookmarks
+                        page,
+                        perPage,
+                        sort: '-created'
+                    });
+
+                    return {
+                        content: result.items.map(bookmark => ({
+                            type: "text",
+                            text: `📚 [ID: ${bookmark._id}] ${bookmark.title || 'Untitled'}\n🔗 ${bookmark.link}\n📝 ${bookmark.excerpt || 'No description'}\n🏷️  Tags: ${bookmark.tags?.join(', ') || 'No tags'}\n📅 Created: ${bookmark.created}\n📁 Collection: ${bookmark.collection?.$id || 'Unknown'}`,
+                            metadata: {
+                                id: bookmark._id,
+                                title: bookmark.title,
+                                link: bookmark.link,
+                                excerpt: bookmark.excerpt,
+                                tags: bookmark.tags,
+                                collectionId: bookmark.collection?.$id,
+                                created: bookmark.created,
+                                lastUpdate: bookmark.lastUpdate,
+                                type: bookmark.type,
+                                important: bookmark.important,
+                                source: 'all_bookmarks',
+                                category: RaindropMCPService.CATEGORIES.BOOKMARKS
+                            }
+                        })),
+                        metadata: {
+                            total: result.count,
+                            page: page || 0,
+                            perPage: perPage || 25,
+                            hasMore: (page || 0) * (perPage || 25) + result.items.length < result.count,
+                            source: 'all_bookmarks',
+                            description: 'All bookmarks from all collections'
+                        }
+                    };
+                } catch (error) {
+                    throw new Error(`Failed to get all bookmarks: ${(error as Error).message}`);
+                }
+            }
+        );
+
+        this.server.tool(
+            'bookmark_list_unsorted',
+            'Get unsorted/uncategorized bookmarks. This is a simplified tool for AI to quickly access bookmarks that haven\'t been organized into specific collections yet.',
+            {
+                page: z.number().optional().default(0).describe('Page number for pagination (starts at 0)'),
+                perPage: z.number().min(1).max(50).optional().default(25).describe('Results per page (1-50)')
+            },
+            async ({ page, perPage }) => {
+                try {
+                    const result = await raindropService.searchRaindrops({
+                        collection: -1, // Unsorted bookmarks
+                        page,
+                        perPage,
+                        sort: '-created'
+                    });
+
+                    return {
+                        content: result.items.map(bookmark => ({
+                            type: "text",
+                            text: `📚 [ID: ${bookmark._id}] ${bookmark.title || 'Untitled'}\n🔗 ${bookmark.link}\n📝 ${bookmark.excerpt || 'No description'}\n🏷️  Tags: ${bookmark.tags?.join(', ') || 'No tags'}\n📅 Created: ${bookmark.created}\n⚠️  Status: Unsorted`,
+                            metadata: {
+                                id: bookmark._id,
+                                title: bookmark.title,
+                                link: bookmark.link,
+                                excerpt: bookmark.excerpt,
+                                tags: bookmark.tags,
+                                collectionId: bookmark.collection?.$id,
+                                created: bookmark.created,
+                                lastUpdate: bookmark.lastUpdate,
+                                type: bookmark.type,
+                                important: bookmark.important,
+                                source: 'unsorted_bookmarks',
+                                category: RaindropMCPService.CATEGORIES.BOOKMARKS
+                            }
+                        })),
+                        metadata: {
+                            total: result.count,
+                            page: page || 0,
+                            perPage: perPage || 25,
+                            hasMore: (page || 0) * (perPage || 25) + result.items.length < result.count,
+                            source: 'unsorted_bookmarks',
+                            description: 'Unsorted bookmarks that need organization'
+                        }
+                    };
+                } catch (error) {
+                    throw new Error(`Failed to get unsorted bookmarks: ${(error as Error).message}`);
                 }
             }
         );

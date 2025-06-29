@@ -1,6 +1,6 @@
 {
     "name": "@kazuph/mcp-raindrop",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "description": "MCP Server for Raindrop.io",
     "main": "build/src/index.js",
     "module": "build/src/index.js",
@@ -26,6 +26,7 @@
         "type-check": "tsc --noEmit",
         "test": "bun test",
         "test:coverage": "bun test --coverage",
+        "test:mcp": "bun run test-mcp.ts",
         "test:all": "bun run tests/index.ts",
         "test:http": "bun run tests/test-client.ts",
         "test:server": "bun run tests/test-server.ts",
