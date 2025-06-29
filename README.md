@@ -220,12 +220,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **🐛 Bug Fix**: Fixed collection parameter handling in searchRaindrops and getBookmarks
 - **🧪 Enhanced Testing**: Added comprehensive test coverage for new tools
 
-### 🎯 **v1.5.1 - YAML Resource Consolidation & LLM Optimization**
-- **✅ 20-File Limit Fixed**: Resolved Claude Code attachment limit error
-- **🤖 LLM-Friendly**: Added human-readable collection names to YAML
-- **📁 Consolidated Resources**: 4 organized YAML files instead of 15+ individual resources
-- **⚡ Performance**: Parallel loading and optimized data structures
-- **🔄 Backward Compatible**: All 24 tools remain unchanged
+### 🎯 **v1.6.0 - Batch Operations Fix & Documentation Update**
+- **🔧 Batch Operations Fix**: Fixed collection parameter format in batchUpdateBookmarks
+- **📝 Documentation Overhaul**: Complete CLAUDE.md update with accurate tool names and descriptions
+- **🧹 Tool Cleanup**: Removed deprecated tools and consolidated batch operations
+- **📋 Tool Accuracy**: All 24 tools properly documented with snake_case naming
 
 ### 🛠️ **Previous Updates**
 - **Tool Optimization**: 37→24 tools with enhanced AI-friendly descriptions  
