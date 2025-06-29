@@ -51,7 +51,7 @@ export class RaindropMCPService {
     constructor() {
         this.server = new McpServer({
             name: 'raindrop-mcp',
-            version: '1.7.0',
+            version: '1.7.1',
             description: 'Optimized MCP Server for Raindrop.io with enhanced AI-friendly tool organization and debug logging',
             capabilities: {
                 logging: false // Keep logging off for STDIO compatibility

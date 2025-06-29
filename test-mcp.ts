@@ -27,7 +27,7 @@ async function testMCPTools() {
         // Create server instance
         const { server, cleanup } = createRaindropServer();
         console.log('✅ MCP Server created successfully');
-        console.log('📋 Server: raindrop-mcp v1.7.0');
+        console.log('📋 Server: raindrop-mcp v1.7.1');
 
         if (hasToken) {
             console.log('\n🧪 Testing Tools with Real API...');

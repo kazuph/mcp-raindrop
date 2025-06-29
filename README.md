@@ -213,7 +213,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📋 Recent Enhancements
 
-### 🎯 **v1.7.0 - AI-Friendly Bookmark Access Tools**
+### 🎯 **v1.7.1 - AI-Friendly Bookmark Access Tools**
 - **🤖 New AI Tools**: Added `bookmark_list_all` and `bookmark_list_unsorted` for simplified AI access
 - **📚 Parameter-Free**: No complex parameters needed - perfect for AI agents
 - **🔄 Default Change**: Default collection is now unsorted (-1) instead of all (0)
